@@ -1,7 +1,9 @@
 import { Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js"
 import bs58 from 'bs58'
 import { mainwalletFee, SessionData, subwalletFee } from "../config/contant"
-import { connection } from "../config"
+import { connection, pumpFunSDK } from "../config"
+import { CreateTokenMetadata } from "../web3/pump/utils/types"
+import axios from "axios"
 
 const newWallet = () => {
     const keypair = new Keypair()
@@ -57,8 +59,44 @@ const duplicateCheck = (subWallet: Array<{
     return new Set(keyArray).size != keyArray.length;
 }
 
+const createAndBundleTx = async (session: SessionData) => {
+    const creator = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(session.wallet.privKey!)))
+
+    const buyers: Array<Keypair> = []
+    const buyAmountSol: Array<bigint> = []
+
+    const pumpfunData = session.pumpfun
+
+    pumpfunData.subWallet.map((item) => {
+        buyers.push(Keypair.fromSecretKey(Uint8Array.from(bs58.decode(item.privkey))))
+        buyAmountSol.push(BigInt(item.amount * LAMPORTS_PER_SOL))
+    })
+
+    const response = await axios.get(pumpfunData.image!, {
+        responseType: 'arraybuffer',
+    });
+    const file = new Blob([response.data], { type: response.headers['content-type'] });
+
+    const createTokenMetadata: CreateTokenMetadata = {
+        name: pumpfunData.name!,
+        symbol: pumpfunData.symbol!,
+        description: pumpfunData.description!,
+        file,
+        ...(pumpfunData.website && { website: pumpfunData.website }),
+        ...(pumpfunData.twitter && { twitter: pumpfunData.twitter }),
+        ...(pumpfunData.telegram && { telegram: pumpfunData.telegram }),
+        ...(pumpfunData.discord && { discord: pumpfunData.discord }),
+    }
+
+    const mint = Keypair.generate()
+    const mintResult = await pumpFunSDK.createAndBatchBuy(creator, buyers, buyAmountSol, createTokenMetadata, mint)
+    console.log(mintResult)
+    return mintResult
+}
+
 export {
     newWallet,
     getPubkey,
-    validateBundle
+    validateBundle,
+    createAndBundleTx
 }

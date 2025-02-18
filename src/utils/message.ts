@@ -102,7 +102,7 @@ Socials:
         .text(" --- Sub wallet --- ", "_")
         .row()
         .text("Set new sub wallet", "handle_add_sub_wallet")
-        .text("Remove sub wallet", "handle_remove_sub_wallet")
+        // .text("Remove sub wallet", "handle_remove_sub_wallet")
         .row()
         .text("Run Bundling Create and Buy Transaction", "handle_pump_bundle")
 
@@ -159,12 +159,11 @@ const pumpBundleMessage = async (session: SessionData) => {
         const content = 'Bundling now...'
         const reply_markup = new InlineKeyboard()
             .text("Close", "handle_delete_msg")
-        return { content, reply_markup }
+        return { content, reply_markup, success: true }
     } else if (res.error) {
         const content = res.error
         const reply_markup = new InlineKeyboard()
             .text("Cancel", "handle_delete_msg")
-        return { content, reply_markup }
     }
 }
 

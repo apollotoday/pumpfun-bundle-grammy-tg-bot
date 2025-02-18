@@ -1,8 +1,9 @@
 import { Bot, Context, InlineKeyboard, session, SessionFlavor } from "grammy"
 import { BOT_TOKEN, COMMAND_LIST } from "./src/config";
 import { message } from "./src/utils";
-import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData } from "./src/config/contant";
+import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData, testSession } from "./src/config/contant";
 import fs from 'fs'
+import { createAndBundleTx } from "./src/utils/utils";
 
 const main = async () => {
     const bot = new Bot<Context & SessionFlavor<SessionData>>(BOT_TOKEN)
@@ -11,9 +12,11 @@ const main = async () => {
 
     bot.use(session({ initial: initialSession }));
 
-    // bot.use(async (ctx, next) => {
-    //     await next()
-    // });
+    bot.use(async (ctx, next) => {
+        // console.log(JSON.stringify(ctx.session, null, 4))
+        // console.log(ctx.from?.username,ctx.from?.id)
+        await next()
+    });
 
     // Handle start command
     bot.command("start", (ctx) => {
@@ -84,7 +87,8 @@ const main = async () => {
                     res.content,
                     {
                         reply_markup: res.reply_markup,
-                        parse_mode: "HTML"
+                        parse_mode: "HTML",
+                        link_preview_options: { is_disabled: true },
                     }
                 )
                 break
@@ -166,7 +170,6 @@ const main = async () => {
                         reply_markup: res.reply_markup,
                         parse_mode: "HTML",
                         link_preview_options: { is_disabled: true },
-
                     }
                 )
                 break
@@ -174,7 +177,7 @@ const main = async () => {
             case 'handle_pump_bundle':
                 const handle_pump_bundle_message_result = await message.pumpBundleMessage(ctx.session)
                 if (handle_pump_bundle_message_result) {
-                    await ctx.reply(
+                    const loadingMessage = await ctx.reply(
                         handle_pump_bundle_message_result.content,
                         {
                             reply_markup: handle_pump_bundle_message_result.reply_markup,
@@ -183,6 +186,11 @@ const main = async () => {
 
                         }
                     )
+                    if (handle_pump_bundle_message_result.success) {
+                        // 
+                        const txRes = await createAndBundleTx(ctx.session)
+                        await ctx.api.deleteMessage(ctx.chat?.id!, loadingMessage.message_id);
+                    }
                 }
                 break
 
