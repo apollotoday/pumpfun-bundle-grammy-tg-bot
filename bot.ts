@@ -1,28 +1,39 @@
+import fs from 'fs'
 import { Bot, Context, InlineKeyboard, session, SessionFlavor } from "grammy"
 import { BOT_TOKEN, COMMAND_LIST } from "./src/config";
 import { message } from "./src/utils";
 import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData, testSession } from "./src/config/contant";
-import fs from 'fs'
-import { createAndBundleTx } from "./src/utils/utils";
+import { createAndBundleTx, importNewWallet } from "./src/utils/utils";
+import { handleNewWallet } from "./src/web3";
 
 const main = async () => {
     const bot = new Bot<Context & SessionFlavor<SessionData>>(BOT_TOKEN)
 
     await bot.api.setMyCommands(COMMAND_LIST);
 
-    bot.use(session({ initial: initialSession }));
+    bot.use(session({ initial: testSession }));
 
     bot.use(async (ctx, next) => {
-        // console.log(JSON.stringify(ctx.session, null, 4))
-        // console.log(ctx.from?.username,ctx.from?.id)
+        const username = ctx.from?.username
+        const id = ctx.from?.id
+        const message = ctx.update.message?.text
+        const callback_query = ctx.update.callback_query?.data
+        let log = `${username} (${id}): `
+        if (message) log += `message => ${message}\n`
+        if (callback_query) log += `callback_query => ${callback_query}\n`
+        fs.appendFileSync('log.txt', log)
+        // console.log(ctx.from?.username, ctx.from?.id)
+        // console.log('message ===>>>', ctx.update.message?.text)
+        // console.log('callback_query ===>>>', ctx.update.callback_query?.data)
         await next()
     });
 
     // Handle start command
     bot.command("start", (ctx) => {
+        const data = message.startMessage(ctx.from?.username)
         ctx.reply(
-            message.startMessage(ctx.from?.username).content,
-            { reply_markup: message.startMessage(ctx.from?.username).reply_markup }
+            data.content,
+            { reply_markup: data.reply_markup }
         )
     })
 
@@ -38,7 +49,7 @@ const main = async () => {
     })
 
     bot.command("wallet", async (ctx) => {
-        const res = await message.walletMessage(ctx.session.wallet.pubKey)
+        const res = await message.walletMessage(ctx.session)
         await ctx.reply(
             res.content,
             { reply_markup: res.reply_markup }
@@ -49,36 +60,89 @@ const main = async () => {
     bot.on("callback_query:data", async (ctx) => {
         const data = ctx.callbackQuery.data
         let res: { content: string, reply_markup: InlineKeyboard }
+
+        if (data.startsWith('handle_delete_wallet_')) {
+            const idx = data.split('_')[3]
+
+            if (ctx.session.wallet[Number(idx)].default) {
+                const index = Number(idx) == 0 ? 1 : 1
+                if (index < ctx.session.wallet.length) ctx.session.wallet[index].default = true
+            }
+
+            ctx.session.wallet.splice(Number(idx), 1)
+            res = await message.walletMessage(ctx.session)
+
+            await ctx.editMessageText(
+                res.content,
+                { reply_markup: res.reply_markup }
+            )
+        } else if (data.startsWith('handle_default_wallet_')) {
+            const index = data.split('_')[3]
+            ctx.session.wallet = ctx.session.wallet.filter((item, idx) => {
+                item.default = idx == Number(index)
+                return item
+            })
+            res = await message.walletMessage(ctx.session)
+
+            await ctx.editMessageText(
+                res.content,
+                { reply_markup: res.reply_markup }
+            )
+        } else if (data.startsWith('handle_show_wallet_')) {
+            const index = data.split('_')[3]
+            res = message.showPrivateKey(ctx.session.wallet[Number(index)].privKey!)
+            await ctx.reply(
+                res.content,
+                {
+                    reply_markup: res.reply_markup,
+                    parse_mode: "MarkdownV2"
+                }
+            )
+        }
         switch (data) {
             case 'handle_wallet':
-                res = await message.walletMessage(ctx.session.wallet.pubKey)
+                res = await message.walletMessage(ctx.session)
                 await ctx.reply(
                     res.content,
                     { reply_markup: res.reply_markup }
                 )
                 break
 
-            case 'handle_show_private_key':
-                res = message.showPrivateKey(ctx.session.wallet.privKey!)
-                await ctx.reply(
+            // case 'handle_show_private_key':
+            //     res = message.showPrivateKey(ctx.session)
+            //     await ctx.reply(
+            //         res.content,
+            //         {
+            //             reply_markup: res.reply_markup,
+            //             parse_mode: "MarkdownV2"
+            //         }
+            //     )
+            //     break
+
+            case 'handle_add_wallet':
+                const { pubKey, privKey } = handleNewWallet()
+                ctx.session.wallet.push({ pubKey, privKey, default: ctx.session.wallet.length == 0 })
+                res = await message.walletMessage(ctx.session)
+
+                await ctx.editMessageText(
                     res.content,
-                    {
-                        reply_markup: res.reply_markup,
-                        parse_mode: "MarkdownV2"
-                    }
+                    { reply_markup: res.reply_markup }
                 )
+
                 break
 
             case 'handle_import_wallet':
                 res = message.importWallet()
                 ctx.session.action = 'wallet-import'
-                await ctx.reply(
+                const importWalletMsg = await ctx.reply(
                     res.content,
                     {
                         reply_markup: res.reply_markup,
                         parse_mode: "HTML"
                     }
                 )
+
+                ctx.session.currentMsg = importWalletMsg.message_id
                 break
 
             case 'handle_pumpfun':
@@ -116,60 +180,20 @@ const main = async () => {
                 await ctx.reply(
                     'Please upload image',
                     {
-                        reply_markup: new InlineKeyboard().text("Cancel", "handle_delete_msg"),
+                        reply_markup: new InlineKeyboard().text("🚫 Cancel", "handle_delete_msg"),
                         parse_mode: "HTML"
                     }
                 )
                 break
 
-            case 'handle_add_sub_wallet':
-                await ctx.reply(
-                    `Currently you have ${ctx.session.pumpfun.subWallet.length} sub wallets, Please add new wallet`,
-                    {
-                        reply_markup: new InlineKeyboard()
-                            .text("Private Key", "handle_add_sub_wallet_key")
-                            .text("Amount", "handle_add_sub_wallet_amount")
-                            .text("Cancel", "handle_delete_msg"),
-                        parse_mode: "HTML"
-                    }
-                )
-                break
-
-            case 'handle_add_sub_wallet_key':
-                ctx.session.action = 'pumpfun-sub-key'
-                await ctx.reply(
-                    `Please set new wallet private key`,
-                    {
-                        reply_markup: new InlineKeyboard()
-                            .text("Cancel", "handle_delete_msg"),
-                        parse_mode: "HTML"
-                    }
-                )
-                break
-
-            case 'handle_add_sub_wallet_amount':
+            case 'handle_pump_buy_amount':
                 ctx.session.action = 'pumpfun-sub-amount'
-                await ctx.reply(
-                    `Please set sol amount to buy`,
-                    {
-                        reply_markup: new InlineKeyboard()
-                            .text("Cancel", "handle_delete_msg"),
-                        parse_mode: "HTML"
-                    }
-                )
-                break
-
-            case 'handle_register_temp_wallet':
-                ctx.session.pumpfun.subWallet.push({ privkey: ctx.session.tempWallet.privkey, amount: ctx.session.tempWallet.amount })
-                ctx.session.tempWallet.privkey = ''
-                ctx.session.tempWallet.amount = 0
-                res = message.pumpfunMessage(ctx.session)
+                res = message.pumpSubWalletAmountMsg()
                 await ctx.reply(
                     res.content,
                     {
                         reply_markup: res.reply_markup,
-                        parse_mode: "HTML",
-                        link_preview_options: { is_disabled: true },
+                        parse_mode: "HTML"
                     }
                 )
                 break
@@ -212,28 +236,23 @@ const main = async () => {
             switch (ctx.session.action) {
                 case 'wallet-import':
                     str = ctx.message.text
-                    res = message.updateWallet(str)
-                    await ctx.deleteMessage()
-                    if (res.pubkey) {
-                        ctx.session.wallet.privKey = str
-                        ctx.session.wallet.pubKey = res.pubkey
+                    const flag = ctx.session.wallet.some(item => item.privKey == str)
 
-                        await ctx.reply(
-                            res.content, {
-                            reply_markup: res.reply_markup,
-                            parse_mode: "HTML"
+                    await ctx.deleteMessage()
+                    await ctx.api.deleteMessage(ctx.chat.id, ctx.session.currentMsg)
+                    if (!flag) {
+                        res = importNewWallet(str)
+                        if (res) {
+                            ctx.session.wallet.push({ pubKey: res, privKey: str, default: ctx.session.wallet.length == 0 })
+                            res = await message.walletMessage(ctx.session)
+
+                        } else {
+                            res = message.InvalidSecurityKey()
                         }
-                        )
-                        ctx.session.action = undefined
-                    } else {
                         await ctx.reply(
                             res.content,
-                            {
-                                reply_markup: res.reply_markup,
-                                parse_mode: "HTML"
-                            }
+                            { reply_markup: res.reply_markup }
                         )
-
                     }
                     break
 
@@ -258,20 +277,23 @@ const main = async () => {
                     break
 
                 case 'pumpfun-sub-key':
-                    ctx.session.tempWallet.privkey = ctx.message.text
-                    res = message.showTempWallet(ctx.session.tempWallet.privkey, ctx.session.tempWallet.amount)
-                    await ctx.reply(
-                        res.content,
-                        {
-                            reply_markup: res.reply_markup,
-                            parse_mode: "HTML"
-                        }
-                    )
-                    break
+                // ctx.session.tempWallet.privkey = ctx.message.text
+                // res = message.showTempWallet(ctx.session.tempWallet.privkey, ctx.session.tempWallet.amount)
+                // await ctx.reply(
+                //     res.content,
+                //     {
+                //         reply_markup: res.reply_markup,
+                //         parse_mode: "HTML"
+                //     }
+                // )
+                // break
 
                 case 'pumpfun-sub-amount':
-                    ctx.session.tempWallet.amount = Number(ctx.message.text)
-                    res = message.showTempWallet(ctx.session.tempWallet.privkey, ctx.session.tempWallet.amount)
+                    if (Number(ctx.message.text) > 0) {
+                        ctx.session.pumpfun.amount = Number(ctx.message.text)
+                        ctx.session.action = undefined
+                        res = message.pumpfunMessage(ctx.session)
+                    }
                     await ctx.reply(
                         res.content,
                         {
@@ -283,7 +305,9 @@ const main = async () => {
 
                 default:
                     // ctx.session.action = undefined
-                    await ctx.deleteMessage()
+                    try { await ctx.deleteMessage() } catch (err) {
+
+                    }
             }
         }
 

@@ -23,15 +23,13 @@ interface SessionData {
         twitter: string | undefined
         telegram: string | undefined
         discord: string | undefined
-        subWallet: Array<{ privkey: string, amount: number }>
+        amount: number
     },
-    wallet: {
+    wallet: Array<{
         pubKey: string | undefined
         privKey: string | undefined
-    },
-    tempWallet: {
-        privkey: string, amount: number
-    }
+        default: boolean
+    }>,
     action: 'meteora-baseMint'
     | 'meteora-quoteMint'
     | 'meteora-baseAmount'
@@ -48,6 +46,7 @@ interface SessionData {
     | 'pumpfun-sub-key'
     | 'pumpfun-sub-amount'
     | undefined
+    currentMsg: number
 }
 
 const pumpfunActionType = {
@@ -90,14 +89,11 @@ const initialSession = (): SessionData => ({
         twitter: undefined,
         telegram: undefined,
         discord: undefined,
-        subWallet: []
+        amount: 0
     },
-    wallet: {
-        pubKey: undefined,
-        privKey: undefined
-    },
-    tempWallet: { privkey: '', amount: 0 },
-    action: undefined
+    wallet: [],
+    action: undefined,
+    currentMsg: 0
 });
 
 const testSession = (): SessionData => ({
@@ -116,23 +112,22 @@ const testSession = (): SessionData => ({
         twitter: 'https://twitter.com',
         telegram: 'https://telegram.com',
         discord: 'https://discord.com',
-        subWallet: [
-            {
-                privkey: '1dz4HGQVo5Q2KmTWjEVnEbTKozzenvqkbdBZuUjFv9jNRH8jUdM3tsFuimm74yT7mQFVcvSjfn2KAUth5ptGGJV',
-                amount: 0.00001
-            },
-            {
-                privkey: '48uFo6f1pnVs7F8aWMFeBmJjyukQxrbsjrNsTXeV9SdSQSG2yEkwEWqN28N9Jm8vyeZhFWXPsnUkihHUeyHhpTfL',
-                amount: 0.00001
-            }
-        ]
+        amount: 0
     },
-    wallet: {
-        pubKey: 'FKzyu5ZRKzzrxN2axxwuBqqJ7FPAxqQQyxsU6rZsfZgr',
-        privKey: 'VFY8TWEomRVdNB2EFdK51ZLRCjQJLjE2Tv3Ary8VshMvfPyhrAcdS6cLsPcb7QGgJi4xAUxzTVoz2bF2k68UyGA'
-    },
-    tempWallet: { privkey: '', amount: 0 },
-    action: undefined
+    wallet: [
+        {
+            pubKey: 'FKzyu5ZRKzzrxN2axxwuBqqJ7FPAxqQQyxsU6rZsfZgr',
+            privKey: 'VFY8TWEomRVdNB2EFdK51ZLRCjQJLjE2Tv3Ary8VshMvfPyhrAcdS6cLsPcb7QGgJi4xAUxzTVoz2bF2k68UyGA',
+            default: true
+        },
+        {
+            pubKey: '6ac6Nea2fzfh4y1VqMoMuQwEYTfmhK9AasrgScRzRVnW',
+            privKey: '3tPhJW9oVwXk7XeRY32XJyN2riTvgudquJFa1EVveAFYQSUCJYQDy7JvoBnBENncKgfVDQQB4VzTCcUTFv9i4cWA',
+            default: false
+        },
+    ],
+    action: undefined,
+    currentMsg: 0
 });
 
 const subwalletFee = 0
