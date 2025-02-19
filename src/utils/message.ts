@@ -53,7 +53,7 @@ const walletMessage = async (session: SessionData) => {
 const showPrivateKey = (privKey: string) => {
     const content = `This is wallet private key ||${privKey}||`
     const reply_markup = new InlineKeyboard()
-        .text("❌ Close", "handle_delete_msg")
+        .text("🔒 Hide Key", "handle_delete_msg")
     return { content, reply_markup }
 }
 
