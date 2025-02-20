@@ -102,52 +102,6 @@ const initialSession = (): SessionData => ({
     currentMsg: 0
 });
 
-const testSession = (): SessionData => ({
-    meteora: {
-        baseMint: undefined,
-        quoteMint: undefined,
-        baseAmount: undefined,
-        quoteAmount: undefined
-    },
-    pumpfun: {
-        name: 'name',
-        symbol: 'symbol',
-        image: 'https://api.telegram.org/file/bot7408560182:AAFGudYV1IamKrovPyyJ6FexHGYdOHvh2ws/photos/file_4.jpg',
-        description: 'description',
-        website: 'https://website.com',
-        twitter: 'https://twitter.com',
-        telegram: 'https://telegram.com',
-        discord: 'https://discord.com',
-        wallets: [
-            {
-                privKey: 'VFY8TWEomRVdNB2EFdK51ZLRCjQJLjE2Tv3Ary8VshMvfPyhrAcdS6cLsPcb7QGgJi4xAUxzTVoz2bF2k68UyGA',
-                amount: 0.000001,
-                default: true,
-            },
-            {
-                privKey: '4adBSLv78BY5gLCr9XwrzgbeLjtUwCaB1zWY9bsnxsY8fx7bUzDYfEBAtmTGAMWdVWPeJUJpTjK7aw8t5nTSSUAf',
-                amount: 0.000001,
-                default: true,
-            },
-        ],
-    },
-    wallet: [
-        {
-            pubKey: 'FKzyu5ZRKzzrxN2axxwuBqqJ7FPAxqQQyxsU6rZsfZgr',
-            privKey: 'VFY8TWEomRVdNB2EFdK51ZLRCjQJLjE2Tv3Ary8VshMvfPyhrAcdS6cLsPcb7QGgJi4xAUxzTVoz2bF2k68UyGA',
-            default: true
-        },
-        {
-            pubKey: 'en1omyBPyReHeUQfRvFqPtDPrzwQWSuKQMRctXLFmwh',
-            privKey: '4adBSLv78BY5gLCr9XwrzgbeLjtUwCaB1zWY9bsnxsY8fx7bUzDYfEBAtmTGAMWdVWPeJUJpTjK7aw8t5nTSSUAf',
-            default: false
-        },
-    ],
-    tempWallet: undefined,
-    action: undefined,
-    currentMsg: 0
-});
-
 const subwalletFee = 0.0009
 const mainwalletFee = 0.075
 
@@ -165,5 +119,5 @@ enum commitmentType {
 
 const JITO_FEE = 1_000_000
 export {
-    JITO_FEE, COMMAND_LIST, initialSession, SessionData, pumpfunActionType, pumpfunSessionType, subwalletFee, mainwalletFee, systemProgram, eventAuthority, pumpFunProgram, rentProgram, commitmentType, testSession
+    JITO_FEE, COMMAND_LIST, initialSession, SessionData, pumpfunActionType, pumpfunSessionType, subwalletFee, mainwalletFee, systemProgram, eventAuthority, pumpFunProgram, rentProgram, commitmentType
 }
