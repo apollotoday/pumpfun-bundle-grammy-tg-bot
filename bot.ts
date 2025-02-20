@@ -2,7 +2,7 @@ import fs from 'fs'
 import { Bot, Context, InlineKeyboard, session, SessionFlavor } from "grammy"
 import { BOT_TOKEN, COMMAND_LIST } from "./src/config";
 import { message } from "./src/utils";
-import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData, testSession } from "./src/config/contant";
+import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData } from "./src/config/contant";
 import { createAndBundleTx, importNewWallet } from "./src/utils/utils";
 import { handleNewWallet } from "./src/web3";
 
@@ -11,7 +11,7 @@ const main = async () => {
 
     await bot.api.setMyCommands(COMMAND_LIST);
 
-    bot.use(session({ initial: testSession }));
+    bot.use(session({ initial: initialSession }));
 
     bot.use(async (ctx, next) => {
         const username = ctx.from?.username
@@ -94,6 +94,32 @@ const main = async () => {
                     {
                         reply_markup: res.reply_markup,
                         parse_mode: "MarkdownV2"
+                    }
+                )
+            } else if (data.startsWith('handle_pumpfun_sub_wallet_')) {
+                const index = data.split('_')[4]
+                ctx.session.tempWallet = ctx.session.wallet[Number(index)].privKey
+                ctx.session.action = 'pumpfun-sub-amount'
+
+                res = message.pumpSubWalletAmountMsg(ctx.session.wallet[Number(index)].pubKey!)
+                await ctx.reply(
+                    res.content,
+                    {
+                        reply_markup: res.reply_markup,
+                        parse_mode: "HTML"
+                    }
+                )
+            } else if (data.startsWith('handle_remove_pumpfun_sub_wallet_')) {
+                const index = data.split('_')[5]
+                ctx.session.pumpfun.wallets.splice(Number(index), 1)
+
+                res = message.pumpfunMessage(ctx.session)
+                await ctx.reply(
+                    res.content,
+                    {
+                        reply_markup: res.reply_markup,
+                        parse_mode: "HTML",
+                        link_preview_options: { is_disabled: true },
                     }
                 )
             }
@@ -184,9 +210,8 @@ const main = async () => {
                     )
                     break
 
-                case 'handle_pump_buy_amount':
-                    ctx.session.action = 'pumpfun-sub-amount'
-                    res = message.pumpSubWalletAmountMsg()
+                case 'handle_pump_subWallet':
+                    res = message.pumpSubWalletMsg(ctx.session)
                     await ctx.reply(
                         res.content,
                         {
@@ -195,6 +220,18 @@ const main = async () => {
                         }
                     )
                     break
+
+                // case 'handle_pump_buy_amount':
+                //     ctx.session.action = 'pumpfun-sub-amount'
+                //     res = message.pumpSubWalletAmountMsg()
+                //     await ctx.reply(
+                //         res.content,
+                //         {
+                //             reply_markup: res.reply_markup,
+                //             parse_mode: "HTML"
+                //         }
+                //     )
+                //     break
 
                 case 'handle_pump_bundle':
                     const handle_pump_bundle_message_result = await message.pumpBundleMessage(ctx.session)
@@ -209,23 +246,49 @@ const main = async () => {
                             }
                         )
                         if (handle_pump_bundle_message_result.success) {
-                            // 
                             const txRes = await createAndBundleTx(ctx.session)
-                            await ctx.api.deleteMessage(ctx.chat?.id!, loadingMessage.message_id);
+                            if (txRes) {
+                                await ctx.api.deleteMessage(ctx.chat?.id!, loadingMessage.message_id);
+                                if (txRes.success) {
+                                    await ctx.reply(
+                                        `Create and, bundle succesffully, mint address is ${txRes.mint}`
+                                        , {
+                                            reply_markup: handle_pump_bundle_message_result.reply_markup,
+                                            parse_mode: "HTML",
+                                            link_preview_options: { is_disabled: true },
+
+                                        }
+                                    )
+
+                                } else {
+                                    await ctx.reply(
+                                        `Transaction failed, Please try again`,
+                                        {
+                                            reply_markup: new InlineKeyboard().text("🚫 Cancel", "handle_delete_msg"),
+                                            parse_mode: "HTML",
+                                            link_preview_options: { is_disabled: true },
+                                        }
+                                    )
+
+                                }
+                            }
                         }
                     }
                     break
 
                 case 'handle_delete_msg':
                     ctx.session.action = undefined
-                    await ctx.deleteMessage()
+                    try {
+                        await ctx.deleteMessage()
+                    } catch (err) { }
                     break
 
                 default:
 
             }
         } catch (err) {
-            console.log('Callback query error =>', ctx.from.username, ':', data)
+            console.log('Callback query error =>', ctx.from.username, '(', data, ')')
+            // console.log('Callback query error =>', ctx.from.username,'(',data,'', ':', err)
         }
     })
 
@@ -239,9 +302,10 @@ const main = async () => {
                     case 'wallet-import':
                         str = ctx.message.text
                         const flag = ctx.session.wallet.some(item => item.privKey == str)
-
-                        await ctx.deleteMessage()
-                        await ctx.api.deleteMessage(ctx.chat.id, ctx.session.currentMsg)
+                        try {
+                            await ctx.deleteMessage()
+                            await ctx.api.deleteMessage(ctx.chat.id, ctx.session.currentMsg)
+                        } catch (err) { }
                         if (!flag) {
                             res = importNewWallet(str)
                             if (res) {
@@ -278,23 +342,26 @@ const main = async () => {
                         )
                         break
 
-                    case 'pumpfun-sub-key':
-                    // ctx.session.tempWallet.privkey = ctx.message.text
-                    // res = message.showTempWallet(ctx.session.tempWallet.privkey, ctx.session.tempWallet.amount)
-                    // await ctx.reply(
-                    //     res.content,
-                    //     {
-                    //         reply_markup: res.reply_markup,
-                    //         parse_mode: "HTML"
-                    //     }
-                    // )
-                    // break
-
                     case 'pumpfun-sub-amount':
                         if (Number(ctx.message.text) > 0) {
-                            ctx.session.pumpfun.amount = Number(ctx.message.text)
-                            ctx.session.action = undefined
-                            res = message.pumpfunMessage(ctx.session)
+                            if (ctx.session.tempWallet) {
+                                ctx.session.pumpfun.wallets.push({
+                                    privKey: ctx.session.tempWallet,
+                                    amount: Number(ctx.message.text),
+                                    default: true
+                                })
+                                ctx.session.tempWallet = undefined
+                                ctx.session.action = undefined
+                                res = message.pumpfunMessage(ctx.session)
+                            }
+                        } else {
+                            await ctx.reply(
+                                'Please input correct amount',
+                                {
+                                    reply_markup: new InlineKeyboard().text("🚫 Cancel", "handle_ e_msg"),
+                                    parse_mode: "HTML"
+                                }
+                            )
                         }
                         await ctx.reply(
                             res.content,
@@ -307,9 +374,7 @@ const main = async () => {
 
                     default:
                         // ctx.session.action = undefined
-                        try { await ctx.deleteMessage() } catch (err) {
-
-                        }
+                        try { await ctx.deleteMessage() } catch (err) { }
                 }
             }
 
@@ -320,7 +385,9 @@ const main = async () => {
                         const file = await ctx.api.getFile(fileId);
                         const fileUrl = `https://api.telegram.org/file/bot${bot.token}/${file.file_path}`;
                         ctx.session.pumpfun.image = fileUrl
-                        await ctx.deleteMessage()
+                        try {
+                            await ctx.deleteMessage()
+                        } catch (err) { }
                         res = message.pumpfunMessage(ctx.session)
                         await ctx.reply(
                             res.content,

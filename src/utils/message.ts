@@ -79,13 +79,23 @@ Name: ${session.pumpfun.name ?? '-'}
 Symbol: ${session.pumpfun.symbol ?? '-'}
 Description: ${session.pumpfun.description ?? '-'}
 Image: ${session.pumpfun.image ? 'Uploaded' : 'Not uploaded yet'}
-Amount: ${session.pumpfun.amount > 0 ? `${session.pumpfun.amount} SOL` : '-'}
 Socials:
   - Website: ${session.pumpfun.website ?? '-'}
   - Twitter: ${session.pumpfun.twitter ?? '-'}
   - Telegram: ${session.pumpfun.telegram ?? '-'}
   - Discord: ${session.pumpfun.discord ?? '-'}
+
+Main Wallet:
+${session.wallet.find((item) => item.default)?.pubKey ? `<a href='https://solscan.io/account/${session.wallet.find((item) => item.default)?.pubKey}'>${session.wallet.find((item) => item.default)?.pubKey}</a>` : '-'}
 `
+
+    if (session.pumpfun.wallets.length) {
+        content += `\nSub Wallets:`
+        session.pumpfun.wallets.map((item, idx) => {
+            const pubkey = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(item.privKey))).publicKey.toBase58()
+            content += `\n${idx + 1}. <a href='https://solscan.io/account/${pubkey}'>${pubkey}</a> (${item.amount} sol)`
+        })
+    }
 
     const reply_markup = new InlineKeyboard()
         .text(" --- Metadata --- ")
@@ -102,7 +112,7 @@ Socials:
         .text("✏️ Telegram", "handle_pumpfun_telegram")
         .text("✏️ Discord", "handle_pumpfun_discord")
         .row()
-        .text("✏️ Set Buy Amount", "handle_pump_buy_amount")
+        .text("✏️ Set New Sub Wallet", "handle_pump_subWallet")
         .row()
         .text("🚀 Run Bundling Create and Buy Transaction", "handle_pump_bundle")
 
@@ -117,10 +127,33 @@ const pumpfunDetailMessage = (item: string) => {
     return { content, reply_markup }
 }
 
-const pumpSubWalletAmountMsg = () => {
-    const content = `Please input sol amount to buy`
+const pumpSubWalletMsg = (session: SessionData) => {
+    const content = `Please select sub wallet`
+    const reply_markup = new InlineKeyboard()
+    session.wallet.map((item, idx) => {
+        reply_markup
+            .text(`${item.pubKey}`)
+        const flag = session.pumpfun.wallets.some((sub) => sub.privKey === item.privKey)
+        if (flag) {
+            reply_markup
+                .text(`⛔`, `handle_remove_pumpfun_sub_wallet_${idx}`)
+                .row()
+        } else {
+            reply_markup
+                .text(`👉`, `handle_pumpfun_sub_wallet_${idx}`)
+                .row()
+        }
+    })
+    reply_markup
+        .text("🚫 Close", "handle_delete_msg")
+    return { content, reply_markup }
+}
+
+const pumpSubWalletAmountMsg = (pubkey: string) => {
+    const content = `You select this wallet <code>${pubkey}</code>, please input amount`
     const reply_markup = new InlineKeyboard()
         .text("🚫 Cancel", "handle_delete_msg")
+
     return { content, reply_markup }
 }
 
@@ -167,10 +200,12 @@ const pumpBundleMessage = async (session: SessionData) => {
         const reply_markup = new InlineKeyboard()
             .text("🚫 Close", "handle_delete_msg")
         return { content, reply_markup, success: true }
-    } else if (res.error) {
+    } else {
+        console.log('res.error', res.error)
         const content = res.error
         const reply_markup = new InlineKeyboard()
             .text("🚫 Cancel", "handle_delete_msg")
+        return { content, reply_markup, success: false }
     }
 }
 
@@ -187,4 +222,5 @@ export {
     pumpBundleMessage,
     InvalidSecurityKey,
     pumpSubWalletAmountMsg,
+    pumpSubWalletMsg,
 }
