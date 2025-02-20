@@ -165,8 +165,6 @@ export class PumpFunSDK {
         }
 
         const lutAddress = lutResult.Ok?.lookupTable
-        // const lutAddress = Keypair.generate().publicKey
-
 
         console.log('lutAddress', lutAddress?.toBase58())
         if (!lutAddress) return {
@@ -185,8 +183,8 @@ export class PumpFunSDK {
         const splitedKeypairArray = chunkArray(buyers, this.count)
         const splitedAmountArray = chunkArray(buyAmountSol, this.count)
 
-        // const buyTx = await this.batchBuyInx(splitedKeypairArray, splitedAmountArray, mint.publicKey, new PublicKey(lutAddress))
-        const buyTx = await this.batchBuyInx(splitedKeypairArray, splitedAmountArray, new PublicKey('AnoknYzfWdQ4F7ELF5BnYDTCZGbPHQs2SifuLxdmurgS'), new PublicKey(lutAddress))
+        const buyTx = await this.batchBuyInx(splitedKeypairArray, splitedAmountArray, mint.publicKey, new PublicKey(lutAddress))
+        // const buyTx = await this.batchBuyInx(splitedKeypairArray, splitedAmountArray, new PublicKey('AnoknYzfWdQ4F7ELF5BnYDTCZGbPHQs2SifuLxdmurgS'), new PublicKey(lutAddress))
 
         if (buyTx.Err) {
             return {
@@ -196,15 +194,15 @@ export class PumpFunSDK {
         }
 
         if (buyTx.Ok) {
-            // const lookupTable = (await this.connection.getAddressLookupTable(lutAddress)).value;
+            const lookupTable = (await this.connection.getAddressLookupTable(lutAddress)).value;
 
-            // if (lookupTable == null) {
-            //     console.error('lookup table creation failed')
-            //     return {
-            //         success: false,
-            //         error: 'getting lut data error'
-            //     }
-            // }
+            if (lookupTable == null) {
+                console.error('lookup table creation failed')
+                return {
+                    success: false,
+                    error: 'getting lut data error'
+                }
+            }
 
             const buyVTxList: Array<VersionedTransaction> = []
 
@@ -214,8 +212,7 @@ export class PumpFunSDK {
                     payerKey: payer.publicKey,
                     recentBlockhash: latestBlockhash.blockhash,
                     instructions: tx.instructions
-                }).compileToV0Message();
-                // }).compileToV0Message([lookupTable]);
+                }).compileToV0Message([lookupTable]);
 
                 const buyVTx = new VersionedTransaction(buyTxMsg);
                 buyVTx.sign([splitedKeypairArray[0][0], ...splitedKeypairArray[i]])
@@ -224,19 +221,19 @@ export class PumpFunSDK {
             }
 
             const bundleResult = await jitoPumpBundle(createTx, [payer, mint], buyVTxList, payer)
-            // if (bundleResult.confirmed) {
-            //     return {
-            //         success: true,
-            //         mint: mint.publicKey.toBase58(),
-            //         bundleId: bundleResult.bundleId,
-            //         tipTx: bundleResult.jitoTxsignature
-            //     }
-            // } else {
-            //     return {
-            //         success: false,
-            //         error: 'bundling error'
-            //     }
-            // }
+            if (bundleResult.confirmed) {
+                return {
+                    success: true,
+                    mint: mint.publicKey.toBase58(),
+                    bundleId: bundleResult.bundleId,
+                    tipTx: bundleResult.jitoTxsignature
+                }
+            } else {
+                return {
+                    success: false,
+                    error: 'bundling error'
+                }
+            }
         }
     }
 

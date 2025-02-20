@@ -23,13 +23,18 @@ interface SessionData {
         twitter: string | undefined
         telegram: string | undefined
         discord: string | undefined
-        amount: number
+        wallets: Array<{
+            privKey: string
+            amount: number
+            default: boolean
+        }>
     },
     wallet: Array<{
         pubKey: string | undefined
         privKey: string | undefined
         default: boolean
     }>,
+    tempWallet: string | undefined,
     action: 'meteora-baseMint'
     | 'meteora-quoteMint'
     | 'meteora-baseAmount'
@@ -89,10 +94,11 @@ const initialSession = (): SessionData => ({
         twitter: undefined,
         telegram: undefined,
         discord: undefined,
-        amount: 0
+        wallets: [],
     },
     wallet: [],
     action: undefined,
+    tempWallet: undefined,
     currentMsg: 0
 });
 
@@ -112,7 +118,18 @@ const testSession = (): SessionData => ({
         twitter: 'https://twitter.com',
         telegram: 'https://telegram.com',
         discord: 'https://discord.com',
-        amount: 0
+        wallets: [
+            {
+                privKey: 'VFY8TWEomRVdNB2EFdK51ZLRCjQJLjE2Tv3Ary8VshMvfPyhrAcdS6cLsPcb7QGgJi4xAUxzTVoz2bF2k68UyGA',
+                amount: 0.000001,
+                default: true,
+            },
+            {
+                privKey: '4adBSLv78BY5gLCr9XwrzgbeLjtUwCaB1zWY9bsnxsY8fx7bUzDYfEBAtmTGAMWdVWPeJUJpTjK7aw8t5nTSSUAf',
+                amount: 0.000001,
+                default: true,
+            },
+        ],
     },
     wallet: [
         {
@@ -121,17 +138,18 @@ const testSession = (): SessionData => ({
             default: true
         },
         {
-            pubKey: '6ac6Nea2fzfh4y1VqMoMuQwEYTfmhK9AasrgScRzRVnW',
-            privKey: '3tPhJW9oVwXk7XeRY32XJyN2riTvgudquJFa1EVveAFYQSUCJYQDy7JvoBnBENncKgfVDQQB4VzTCcUTFv9i4cWA',
+            pubKey: 'en1omyBPyReHeUQfRvFqPtDPrzwQWSuKQMRctXLFmwh',
+            privKey: '4adBSLv78BY5gLCr9XwrzgbeLjtUwCaB1zWY9bsnxsY8fx7bUzDYfEBAtmTGAMWdVWPeJUJpTjK7aw8t5nTSSUAf',
             default: false
         },
     ],
+    tempWallet: undefined,
     action: undefined,
     currentMsg: 0
 });
 
-const subwalletFee = 0
-const mainwalletFee = 0.003
+const subwalletFee = 0.0009
+const mainwalletFee = 0.075
 
 // web3
 const systemProgram = new PublicKey('11111111111111111111111111111111')
@@ -149,9 +167,3 @@ const JITO_FEE = 1_000_000
 export {
     JITO_FEE, COMMAND_LIST, initialSession, SessionData, pumpfunActionType, pumpfunSessionType, subwalletFee, mainwalletFee, systemProgram, eventAuthority, pumpFunProgram, rentProgram, commitmentType, testSession
 }
-
-// 4R8XEFbFaCWGhXb5fPjUJEW3rg8581DZNLCzG3pCJQQoTxPiBCtzygkN4c3p3wmhC2JG4b5sNHABqMC6wVBwco1r
-
-// rLRfVRaJsqTpN74UH7WCyjxGU95UUnUoDFb5FYLw5LpnPa6PTUnPixnGjV5k2CudcZdJ2SjvxNwbym2HPpqU8qv
-
-// 2RSmZWJaB1YRVt1rGkqDDmPqESPNxpUezVK4s59UWsa5jg1MdgUUkxEgHhwShvy4rw4XarGYPfTqWzFsySWqGbeY
