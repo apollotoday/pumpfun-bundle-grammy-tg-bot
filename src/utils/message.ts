@@ -4,11 +4,14 @@ import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { validateBundle } from "./utils";
 import { SessionData } from "../config/contant";
 import bs58 from 'bs58'
+import { SessionState } from "http2";
 
 const startMessage = (username: string | undefined) => {
-    const content = `Hello ${username ?? ''}, Welcome to clickcreate bot`
+    const content = `Hello ${username ?? ''}, Welcome to Click Create Bot`
     const reply_markup = new InlineKeyboard()
         .text("💳 Wallet", "handle_wallet")
+        .row()
+        .text("💲 Sell Pump Token", "handle_pump_sell")
         .row()
         .text("💊 Pump.fun", "handle_pumpfun")
     // .text("Meteora", "handle_meteora");
@@ -157,41 +160,41 @@ const pumpSubWalletAmountMsg = (pubkey: string) => {
     return { content, reply_markup }
 }
 
-const showTempWallet = (privkey: string, amount: number) => {
-    if (privkey) {
-        try {
-            if (amount) {
-                const content = `Current new wallet address is ${Keypair.fromSecretKey(Uint8Array.from(bs58.decode(privkey))).publicKey.toBase58()}, amount is ${amount} sol`
-                const reply_markup = new InlineKeyboard()
-                    .text("Set new private key", "handle_add_sub_wallet_key")
-                    .text("Set new amount", "handle_add_sub_wallet_amount")
-                    .row()
-                    .text("Register", "handle_register_temp_wallet")
+// const showTempWallet = (privkey: string, amount: number) => {
+//     if (privkey) {
+//         try {
+//             if (amount) {
+//                 const content = `Current new wallet address is ${Keypair.fromSecretKey(Uint8Array.from(bs58.decode(privkey))).publicKey.toBase58()}, amount is ${amount} sol`
+//                 const reply_markup = new InlineKeyboard()
+//                     .text("Set new private key", "handle_add_sub_wallet_key")
+//                     .text("Set new amount", "handle_add_sub_wallet_amount")
+//                     .row()
+//                     .text("Register", "handle_register_temp_wallet")
 
-                return { content, reply_markup }
-            } else {
-                const content = `Current new wallet address is ${Keypair.fromSecretKey(Uint8Array.from(bs58.decode(privkey))).publicKey.toBase58()}, please set amount to buy`
-                const reply_markup = new InlineKeyboard()
-                    .text("Set new private key", "handle_add_sub_wallet_key")
-                    .text("Set amount", "handle_add_sub_wallet_amount")
+//                 return { content, reply_markup }
+//             } else {
+//                 const content = `Current new wallet address is ${Keypair.fromSecretKey(Uint8Array.from(bs58.decode(privkey))).publicKey.toBase58()}, please set amount to buy`
+//                 const reply_markup = new InlineKeyboard()
+//                     .text("Set new private key", "handle_add_sub_wallet_key")
+//                     .text("Set amount", "handle_add_sub_wallet_amount")
 
-                return { content, reply_markup }
-            }
-        } catch (e) {
-            const content = `Invalid private key, please input new private key`
-            const reply_markup = new InlineKeyboard()
-                .text("Set new amount", "handle_add_sub_wallet_amount")
-            return { content, reply_markup }
-        }
-    } else {
-        const content = `Current buy amount is ${amount} sol, please input private key to set wallet`
-        const reply_markup = new InlineKeyboard()
-            .text("Set private key", "handle_add_sub_wallet_key")
-            .text("Set new amount", "handle_add_sub_wallet_amount")
+//                 return { content, reply_markup }
+//             }
+//         } catch (e) {
+//             const content = `Invalid private key, please input new private key`
+//             const reply_markup = new InlineKeyboard()
+//                 .text("Set new amount", "handle_add_sub_wallet_amount")
+//             return { content, reply_markup }
+//         }
+//     } else {
+//         const content = `Current buy amount is ${amount} sol, please input private key to set wallet`
+//         const reply_markup = new InlineKeyboard()
+//             .text("Set private key", "handle_add_sub_wallet_key")
+//             .text("Set new amount", "handle_add_sub_wallet_amount")
 
-        return { content, reply_markup }
-    }
-}
+//         return { content, reply_markup }
+//     }
+// }
 
 const pumpBundleMessage = async (session: SessionData) => {
     const res = await validateBundle(session)
@@ -209,7 +212,74 @@ const pumpBundleMessage = async (session: SessionData) => {
     }
 }
 
+const pumpSellMessage = async (session: SessionData) => {
+    const content = `Please select wallet to sell`
+    const reply_markup = new InlineKeyboard()
+    session.wallet.map((item, idx) => {
+        reply_markup
+            .text(`${item.pubKey}`)
+            .text(`👉`, `handle_sell_pump_${idx}`)
+            .row()
+    })
+    reply_markup.text("🚫 Cancel", "handle_delete_msg")
 
+    return { content, reply_markup }
+}
+
+const pumpSellConfirmMessage = async () => {
+    const content = `Token selling now...`
+    const reply_markup = new InlineKeyboard().text("🚫 Close", "handle_delete_msg")
+
+    return { content, reply_markup }
+}
+
+const pumpSellInputMintMessage = async (session: SessionData) => {
+    const walletKeypair = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(session.pumpsell.privKey)))
+    const content = `You have select wallet <a href='https://solscan.io/account/${walletKeypair.publicKey.toBase58()}'>${walletKeypair.publicKey.toBase58()}</a>. Please input token address to sell`
+    const reply_markup = new InlineKeyboard().text("🚫 Close", "handle_delete_msg")
+
+    return { content, reply_markup }
+}
+
+const pumpSellMintResultMessage = async (mint: string) => {
+    try {
+        const mintPubkey = new PublicKey(mint)
+        const info = await connection.getAccountInfo(mintPubkey)
+        if (info) {
+            const content = `You selected token <code>${mint}</code>. Please input token amount to sell`
+            const reply_markup = new InlineKeyboard().text("🚫 Close", "handle_delete_msg")
+            return { content, reply_markup, result: true }
+        } else {
+            const content = `Please input token mint address correctly. <code>${mint}</code> is not valid`
+            const reply_markup = new InlineKeyboard().text("🚫 Close", "handle_delete_msg")
+            return { content, reply_markup, result: false }
+        }
+    } catch (err) {
+        const content = `Please input token mint address correctly. <code>${mint}</code> is not valid`
+        const reply_markup = new InlineKeyboard().text("🚫 Close", "handle_delete_msg")
+        return { content, reply_markup, result: false }
+    }
+}
+
+const pumpSellInputAmountMessage = async (amount: string, session: SessionData) => {
+    try {
+        if (Number(amount) > 0) {
+            const walletKeypair = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(session.pumpsell.privKey)))
+            const content = `Wallet: <code>${walletKeypair.publicKey.toBase58()}</code>
+Mint: <code>${session.pumpsell.mint}</code>
+Sell amount: ${amount}`
+            const reply_markup = new InlineKeyboard()
+                .text("💲 Sell", "handle_pump_sell_confirm")
+                .text("🚫 Close", "handle_delete_msg")
+            return { content, reply_markup, result: true }
+        }
+    } catch (err) {
+        const content = `Invalid token amount, please input again`
+        const reply_markup = new InlineKeyboard()
+            .text("🚫 Close", "handle_delete_msg")
+        return { content, reply_markup, result: false }
+    }
+}
 
 export {
     startMessage,
@@ -218,9 +288,13 @@ export {
     importWallet,
     pumpfunMessage,
     pumpfunDetailMessage,
-    showTempWallet,
     pumpBundleMessage,
     InvalidSecurityKey,
     pumpSubWalletAmountMsg,
     pumpSubWalletMsg,
+    pumpSellMessage,
+    pumpSellInputMintMessage,
+    pumpSellMintResultMessage,
+    pumpSellInputAmountMessage,
+    pumpSellConfirmMessage,
 }
