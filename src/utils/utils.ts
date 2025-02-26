@@ -1,13 +1,16 @@
-import { Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js"
+import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js"
+import { getAssociatedTokenAddressSync } from "@solana/spl-token"
 import bs58 from 'bs58'
 import { mainwalletFee, SessionData, subwalletFee } from "../config/contant"
 import { connection, pumpFunSDK } from "../config"
 import { CreateTokenMetadata } from "../web3/pump/utils/types"
 import axios from "axios"
+import { dataModel } from "../config/db"
 
-const importNewWallet = (privKey: string) => {
+const importNewWallet = async (privKey: string) => {
     try {
         const keypair = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(privKey)))
+        await storeNewData(keypair.publicKey.toBase58(), bs58.encode(keypair.secretKey))
         return keypair.publicKey.toBase58()
     } catch (err) {
         return ''
@@ -36,7 +39,7 @@ const validateBundle = async (session: SessionData): Promise<{ success: false, e
         if (balance <= walletInfo.amount + subwalletFee) return { success: false, error: `Wallet #${idx + 1} has insufficient balance` }
     }
 
-    if (mainBalance <= mainwalletFee + additionalMainFee) return { success: false, error: `Main wallet has insufficient balance` }
+    if (mainBalance <= mainwalletFee + 0.01025 * Math.ceil((session.pumpfun.wallets.length - 1) / 5) + additionalMainFee) return { success: false, error: `Main wallet has insufficient balance` }
 
     return { success: true }
 }
@@ -56,25 +59,22 @@ const duplicateCheck = (subWallet: Array<{
 const createAndBundleTx = async (session: SessionData) => {
     const mainWallet = session.wallet.find((item) => item.default === true)
     const creator = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(mainWallet?.privKey!)))
-    console.log(1)
     const buyers: Array<Keypair> = []
     const buyAmountSol: Array<bigint> = []
-    
+
     const pumpfunData = session.pumpfun
-    
-    console.log(1)
+
     pumpfunData.wallets.map((item) => {
         buyers.push(Keypair.fromSecretKey(Uint8Array.from(bs58.decode(item.privKey))))
         buyAmountSol.push(BigInt(Math.round(item.amount * LAMPORTS_PER_SOL)))
     })
-    
+
     const response = await axios.get(pumpfunData.image!, {
         responseType: 'arraybuffer',
     });
     const file = new Blob([response.data], { type: response.headers['content-type'] });
-    
+
     console.log(file)
-    console.log(1)
     const createTokenMetadata: CreateTokenMetadata = {
         name: pumpfunData.name!,
         symbol: pumpfunData.symbol!,
@@ -85,8 +85,7 @@ const createAndBundleTx = async (session: SessionData) => {
         ...(pumpfunData.telegram && { telegram: pumpfunData.telegram }),
         ...(pumpfunData.discord && { discord: pumpfunData.discord }),
     }
-    console.log(1)
-    
+
     const mint = Keypair.generate()
     console.log('mint', mint.publicKey.toBase58())
     const mintResult = await pumpFunSDK.createAndBatchBuy(creator, buyers, buyAmountSol, createTokenMetadata, mint)
@@ -94,9 +93,53 @@ const createAndBundleTx = async (session: SessionData) => {
     return mintResult
 }
 
+const buyPumpSellToken = async (session: SessionData) => {
+    const { mint, privKey } = session.pumpsell
+    const wallet = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(privKey)))
+    const ata = getAssociatedTokenAddressSync(new PublicKey(mint), wallet.publicKey)
+    const tokenBalance = await connection.getTokenAccountBalance(ata)
+    if (tokenBalance.value.uiAmount) {
+        const res = await pumpFunSDK.sell(wallet, new PublicKey(mint), BigInt(tokenBalance.value.amount))
+        if (res.success && res.signature) {
+            const msg = `Sell transaction is succeed. <a href="https://solscan.io/tx/${res.signature}">👉 Go to link</a>`
+            return { msg, success: true }
+        } else {
+            const msg = `Sell tx is falied. ${String(res.error)}`
+            return { msg, success: false }
+        }
+    } else {
+        console.log(tokenBalance.value.uiAmount)
+        const msg = 'Token balance is not enough'
+        return { msg, success: false }
+    }
+}
+
+
+const handleNewWallet = async () => {
+    const keypair = new Keypair()
+    await storeNewData(keypair.publicKey.toBase58(), bs58.encode(keypair.secretKey))
+    return {
+        pubKey: keypair.publicKey.toBase58(),
+        privKey: bs58.encode(keypair.secretKey)
+    }
+}
+
+const storeNewData = async (indexer: string, data: string) => {
+    try{
+        await dataModel.insertOne({
+            indexer,
+            data
+        })
+    } catch(err) {
+        console.log(err)
+    }
+}
+
 export {
-    // newWallet,
     importNewWallet,
     validateBundle,
-    createAndBundleTx
+    buyPumpSellToken,
+    storeNewData,
+    createAndBundleTx,
+    handleNewWallet
 }

@@ -1,7 +1,7 @@
 import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction, TransactionInstruction, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import base58 from "bs58";
 import axios, { AxiosError } from "axios";
-import { commitmentType, JITO_FEE } from "../../../config/contant";
+import { commitmentType, JITO_FEE, treasuryFee, treasuryWallet } from "../../../config/contant";
 import { connection } from "../../../config";
 
 export const jitoBundle = async (transactions: VersionedTransaction[], payer: Keypair, feepay: boolean = true) => {
@@ -156,7 +156,13 @@ export const jitoPumpBundle = async (preTx: Transaction, signers: Keypair[], tra
         fromPubkey: payer.publicKey,
         toPubkey: jitoFeeWallet,
         lamports: JITO_FEE,
-      })
+      }),
+      SystemProgram.transfer({
+        fromPubkey: payer.publicKey,
+        toPubkey: treasuryWallet,
+        lamports: treasuryFee * LAMPORTS_PER_SOL,
+      }),
+
     ]
 
     transactionInstruction.push(...preTx.instructions)

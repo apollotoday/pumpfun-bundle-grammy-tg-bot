@@ -292,13 +292,11 @@ export class PumpFunSDK {
         for (const [i, array] of splitedKeypairArray.entries()) {
             const inxList: Array<TransactionInstruction> = []
             for (const [j, keypairItem] of array.entries()) {
-                console.log('key item', keypairItem.publicKey.toBase58())
                 const associatedUser = getAssociatedTokenAddressSync(mint, keypairItem.publicKey)
                 try {
                     await getAccount(this.connection, associatedUser, commitment);
                 } catch (e) {
                     if (this.associatedUsers.includes(associatedUser.toBase58()) == false) {
-                        console.log(i, j, 'adding ata...')
                         inxList.push(
                             createAssociatedTokenAccountInstruction(
                                 splitedKeypairArray[0][0].publicKey,
@@ -331,7 +329,6 @@ export class PumpFunSDK {
                     slippageBasisPoints
                 );
 
-                console.log(i, j, 'buying...', buyAmount, buyAmountWithSlippage)
                 const inx = await this.program.methods
                     .buy(new BN((buyAmount).toString()).div(new BN(10)).mul(new BN(9)), new BN(buyAmountWithSlippage.toString()))
                     .accounts({
@@ -403,10 +400,8 @@ export class PumpFunSDK {
             ataCreationVTx.sign([payer])
 
             const sim = await this.connection.simulateTransaction(ataCreationVTx, { sigVerify: true })
-            console.log('sim result', sim)
             const sig = await this.connection.sendTransaction(ataCreationVTx)
             const confirm = await this.connection.confirmTransaction(sig)
-            console.log(sig)
         }
 
 

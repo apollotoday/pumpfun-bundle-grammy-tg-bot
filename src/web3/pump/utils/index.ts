@@ -237,7 +237,6 @@ export const sendTx = async (
     const sig = await connection.sendTransaction(versionedTx, {
       skipPreflight: false,
     });
-    console.log("signature:", `https://solscan.io/tx/${sig}`);
 
     const txResult = await connection.confirmTransaction(sig)
 
