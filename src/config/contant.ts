@@ -175,6 +175,7 @@ const systemProgram = new PublicKey('11111111111111111111111111111111')
 const eventAuthority = new PublicKey('Ce6TQqeHC9p8KetsN6JsjHK7UTZk7nasjjnr7XxXp9F1')
 const pumpFunProgram = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P')
 const rentProgram = new PublicKey('SysvarRent111111111111111111111111111111111')
+const pumpfunMintAuthority = new PublicKey('TSLvdd1pWpHVjahSpsvCXUbgwsL3JAcvokwaKt1eokM')
 
 enum commitmentType {
     Finalized = "finalized",
@@ -183,6 +184,7 @@ enum commitmentType {
 }
 
 const JITO_FEE = 1_000_000
+
 export {
     JITO_FEE,
     COMMAND_LIST,
@@ -199,5 +201,6 @@ export {
     eventAuthority,
     pumpFunProgram,
     rentProgram,
+    pumpfunMintAuthority,
     commitmentType
 }

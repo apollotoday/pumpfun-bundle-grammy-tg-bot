@@ -12,7 +12,7 @@ const main = async () => {
 
     await bot.api.setMyCommands(COMMAND_LIST);
 
-    bot.use(session({ initial: initialSession }));
+    bot.use(session({ initial: testSession }));
 
     bot.use(async (ctx, next) => {
         const username = ctx.from?.username
@@ -388,11 +388,11 @@ const main = async () => {
                         break
 
                     case 'pumpsell-mint':
-                        res = await message.pumpSellMintResultMessage(str)
+                        res = await message.pumpSellMintResultMessage(str, ctx.session)
 
                         if (res.result) {
                             ctx.session.pumpsell.mint = str
-                            ctx.session.action = 'pumpsell-amount'
+                            // ctx.session.action = 'pumpsell-amount'
                         }
 
                         await ctx.reply(
@@ -404,22 +404,22 @@ const main = async () => {
                         )
                         break
 
-                    case 'pumpsell-amount':
-                        res = await message.pumpSellInputAmountMessage(str, ctx.session)
+                    // case 'pumpsell-amount':
+                    //     res = await message.pumpSellInputAmountMessage(str, ctx.session)
 
-                        if (res.result) {
-                            ctx.session.pumpsell.amount = Number(str)
-                            ctx.session.action = undefined
-                        }
+                    //     if (res.result) {
+                    //         ctx.session.pumpsell.amount = Number(str)
+                    //         ctx.session.action = undefined
+                    //     }
 
-                        await ctx.reply(
-                            res.content,
-                            {
-                                reply_markup: res.reply_markup,
-                                parse_mode: "HTML"
-                            }
-                        )
-                        break
+                    //     await ctx.reply(
+                    //         res.content,
+                    //         {
+                    //             reply_markup: res.reply_markup,
+                    //             parse_mode: "HTML"
+                    //         }
+                    //     )
+                    //     break
 
                     case 'pumpfun-sub-amount':
                         if (Number(str) > 0) {

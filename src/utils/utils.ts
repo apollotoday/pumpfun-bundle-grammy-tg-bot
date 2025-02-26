@@ -94,12 +94,12 @@ const createAndBundleTx = async (session: SessionData) => {
 }
 
 const buyPumpSellToken = async (session: SessionData) => {
-    const { amount, mint, privKey } = session.pumpsell
+    const { mint, privKey } = session.pumpsell
     const wallet = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(privKey)))
     const ata = getAssociatedTokenAddressSync(new PublicKey(mint), wallet.publicKey)
     const tokenBalance = await connection.getTokenAccountBalance(ata)
-    if (tokenBalance.value.uiAmount && tokenBalance.value.uiAmount >= amount) {
-        const res = await pumpFunSDK.sell(wallet, new PublicKey(mint), BigInt(amount * 1_000_000))
+    if (tokenBalance.value.uiAmount) {
+        const res = await pumpFunSDK.sell(wallet, new PublicKey(mint), BigInt(tokenBalance.value.amount))
         if (res.success && res.signature) {
             const msg = `Sell transaction is succeed. <a href="https://solscan.io/tx/${res.signature}">👉 Go to link</a>`
             return { msg, success: true }
