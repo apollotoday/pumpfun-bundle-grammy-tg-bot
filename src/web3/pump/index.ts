@@ -234,7 +234,6 @@ export class PumpFunSDK {
 
         const lutAddress = lutResult.Ok?.lookupTable
 
-        console.log('lutAddress', lutAddress?.toBase58())
         if (!lutAddress) return {
             success: false, error: 'getting lut table address error'
         }
@@ -853,7 +852,6 @@ export class PumpFunSDK {
                             slot,
                             signature
                         );
-                        console.log("completeEvent", event, slot, signature);
                         break;
                     case "setParamsEvent":
                         processedEvent = toSetParamsEvent(event as SetParamsEvent);
