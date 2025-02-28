@@ -167,7 +167,6 @@ const pumpBundleMessage = async (session: SessionData) => {
             .text("🚫 Close", "handle_delete_msg")
         return { content, reply_markup, success: true }
     } else {
-        console.log('res.error', res.error)
         const content = res.error
         const reply_markup = new InlineKeyboard()
             .text("🚫 Cancel", "handle_delete_msg")
