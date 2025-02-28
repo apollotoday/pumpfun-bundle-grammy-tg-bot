@@ -46,8 +46,6 @@ export const jitoSellBundle = async (transactions: VersionedTransaction[], payer
     const serializedTransactions = [serializedjitoFeeTx]
 
     for (let i = 0; i < transactions.length; i++) {
-      const confirm = await connection.simulateTransaction(transactions[i])
-      console.log(confirm.value.err)
       const serializedTransaction = base58.encode(transactions[i].serialize())
       serializedTransactions.push(serializedTransaction)
     }
