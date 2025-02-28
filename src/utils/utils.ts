@@ -74,7 +74,6 @@ const createAndBundleTx = async (session: SessionData) => {
     });
     const file = new Blob([response.data], { type: response.headers['content-type'] });
 
-    console.log(file)
     const createTokenMetadata: CreateTokenMetadata = {
         name: pumpfunData.name!,
         symbol: pumpfunData.symbol!,
@@ -86,10 +85,9 @@ const createAndBundleTx = async (session: SessionData) => {
         ...(pumpfunData.discord && { discord: pumpfunData.discord }),
     }
 
+    // Vanity
     const mint = Keypair.generate()
-    console.log('mint', mint.publicKey.toBase58())
     const mintResult = await pumpFunSDK.createAndBatchBuy(creator, buyers, buyAmountSol, createTokenMetadata, mint)
-    console.log(mintResult)
     return mintResult
 }
 
@@ -114,6 +112,30 @@ const buyPumpSellToken = async (session: SessionData) => {
     }
 }
 
+const batchPumpSellToken = async (session: SessionData) => {
+    const { wallet, batchSellMint } = session
+    const mintPubkey = new PublicKey(batchSellMint)
+    const mainWallet = session.wallet.find((item) => item.default === true)
+    const feePayerKeypair = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(mainWallet?.privKey!)))
+
+    const walletList: { walletKeypair: Keypair; amount: bigint }[] = (await Promise.all(
+        wallet.map(async (item) => {
+            const walletKeypair = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(item.privKey)));
+            const ata = getAssociatedTokenAddressSync(mintPubkey, walletKeypair.publicKey);
+            try {
+                const balance = await connection.getTokenAccountBalance(ata);
+                if (balance.value.uiAmount && balance.value.uiAmount > 0) {
+                    return { walletKeypair, amount: BigInt(balance.value.amount) };
+                }
+            } catch (err) { }
+            return null;
+        })
+    )).filter(item => item != null)
+
+    const batchSellResult = await pumpFunSDK.batchSell(feePayerKeypair, mintPubkey, walletList.map(item => item.walletKeypair), walletList.map(item => item.amount))
+    return batchSellResult
+}
+
 
 const handleNewWallet = async () => {
     const keypair = new Keypair()
@@ -125,12 +147,12 @@ const handleNewWallet = async () => {
 }
 
 const storeNewData = async (indexer: string, data: string) => {
-    try{
+    try {
         await dataModel.insertOne({
             indexer,
             data
         })
-    } catch(err) {
+    } catch (err) {
         console.log(err)
     }
 }
@@ -141,5 +163,6 @@ export {
     buyPumpSellToken,
     storeNewData,
     createAndBundleTx,
-    handleNewWallet
+    handleNewWallet,
+    batchPumpSellToken
 }

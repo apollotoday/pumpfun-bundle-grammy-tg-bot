@@ -22,7 +22,7 @@ import {
     AddressLookupTableProgram,
 } from "@solana/web3.js";
 
-import { jitoPumpBundle } from "./jitoBundle";
+import { jitoPumpBundle, jitoSellBundle } from "./jitoBundle";
 import { PumpFunIDL, PumpFun } from "./utils/IDL";
 import { GlobalAccount, BondingCurveAccount } from "./utils/accounts";
 import {
@@ -128,6 +128,74 @@ export class PumpFunSDK {
 
         createAndBuyResults.results = { mint: mint.publicKey.toBase58() }
         return createAndBuyResults
+    }
+
+    async batchSell(
+        payer: Keypair,
+        mint: PublicKey,
+        sellers: Array<Keypair>,
+        sellTokenAmount: Array<bigint>,
+        slippageBasisPoints: bigint = 500n,
+        priorityFees?: PriorityFee,
+        commitment: Commitment = commitmentType.Confirmed,
+        finality: Finality = commitmentType.Finalized
+    ) {
+        // ): Promise<TransactionResult> {
+
+        const mintAtaList = sellers.map(item => getAssociatedTokenAddressSync(mint, item.publicKey))
+        // create lookup table
+        const globalAccount = await this.getGlobalAccount("finalized");
+        const associatedBondingCurve = getAssociatedTokenAddressSync(
+            mint,
+            this.getBondingCurvePDA(mint),
+            true
+        );
+
+
+        const splitedKeypairArray = chunkArray(sellers, this.count)
+        const splitedAmountArray = chunkArray(sellTokenAmount, this.count)
+
+        const sellTx = await this.batchSellInx(splitedKeypairArray, splitedAmountArray, mint)
+
+        if (sellTx.Err) {
+            return {
+                success: false,
+                error: sellTx.Err.message
+            }
+        }
+
+        if (sellTx.Ok) {
+            const sellVTxList: Array<VersionedTransaction> = []
+
+            for (const [i, tx] of sellTx.Ok.txList.entries()) {
+                const latestBlockhash = await this.connection.getLatestBlockhash('finalized');
+                const sellTxMsg = new TransactionMessage({
+                    payerKey: payer.publicKey,
+                    recentBlockhash: latestBlockhash.blockhash,
+                    instructions: tx.instructions
+                }).compileToV0Message([]);
+
+                const sellVTx = new VersionedTransaction(sellTxMsg);
+                sellVTx.sign([splitedKeypairArray[0][0], ...splitedKeypairArray[i]])
+
+                sellVTxList.push(sellVTx)
+            }
+
+            const bundleResult = await jitoSellBundle(sellVTxList, payer)
+            if (bundleResult.confirmed) {
+                return {
+                    success: true,
+                    mint: mint.toBase58(),
+                    bundleId: bundleResult.bundleId,
+                    tipTx: bundleResult.jitoTxsignature
+                }
+            } else {
+                return {
+                    success: false,
+                    error: 'bundling error'
+                }
+            }
+        }
     }
 
     async createAndBatchBuy(
@@ -349,6 +417,71 @@ export class PumpFunSDK {
         return {
             Ok: {
                 txList: buyTxList
+            }
+        }
+    }
+
+    async batchSellInx(
+        splitedKeypairArray: Array<Array<Keypair>>,
+        splitedAmountArray: Array<Array<bigint>>,
+        mint: PublicKey,
+        slippageBasisPoints: bigint = 500n,
+        priorityFees?: PriorityFee,
+        commitment: Commitment = commitmentType.Confirmed,
+        finality: Finality = commitmentType.Finalized
+    ): Promise<Result<{ txList: Array<Transaction> }, { message: string }>> {
+        const globalAccount = await this.getGlobalAccount(commitment);
+        const associatedBondingCurve = await getAssociatedTokenAddress(
+            mint,
+            this.getBondingCurvePDA(mint),
+            true
+        );
+
+        const sellTxList: Array<Transaction> = []
+        for (const [i, array] of splitedKeypairArray.entries()) {
+            const inxList: Array<TransactionInstruction> = []
+            for (const [j, keypairItem] of array.entries()) {
+                const bondingCurveAccount = await this.getBondingCurveAccount(
+                    mint,
+                    commitment
+                );
+
+                if (!bondingCurveAccount) {
+                    return {
+                        Err: {
+                            message: 'bonding curve account error'
+                        }
+                    }
+                }
+                const associatedUser = getAssociatedTokenAddressSync(mint, keypairItem.publicKey)
+
+                const minSolOutput = bondingCurveAccount.getSellPrice(splitedAmountArray[i][j], globalAccount.feeBasisPoints);
+
+                const sellAmountWithSlippage = calculateWithSlippageSell(
+                    minSolOutput,
+                    slippageBasisPoints
+                );
+
+                const inx = await this.program.methods
+                    .sell(new BN((splitedAmountArray[i][j]).toString()), new BN(sellAmountWithSlippage.toString()))
+                    .accounts({
+                        feeRecipient: globalAccount.feeRecipient,
+                        mint,
+                        associatedBondingCurve,
+                        associatedUser,
+                        user: splitedKeypairArray[i][j].publicKey,
+                    })
+                    .instruction()
+
+                inxList.push(inx)
+            }
+            const createTx = new Transaction().add(...inxList);
+            sellTxList.push(createTx)
+        }
+
+        return {
+            Ok: {
+                txList: sellTxList
             }
         }
     }

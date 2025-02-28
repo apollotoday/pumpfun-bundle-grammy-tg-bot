@@ -3,7 +3,7 @@ import { Bot, Context, InlineKeyboard, session, SessionFlavor } from "grammy"
 import { BOT_TOKEN, COMMAND_LIST } from "./src/config";
 import { message } from "./src/utils";
 import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData, testSession } from "./src/config/contant";
-import { buyPumpSellToken, createAndBundleTx, handleNewWallet, importNewWallet } from "./src/utils/utils";
+import { batchPumpSellToken, buyPumpSellToken, createAndBundleTx, handleNewWallet, importNewWallet } from "./src/utils/utils";
 import { connectMongoDB } from './src/config/db';
 
 const main = async () => {
@@ -290,7 +290,7 @@ const main = async () => {
                                 await ctx.api.deleteMessage(ctx.chat?.id!, loadingMessage.message_id);
                                 if (txRes.success) {
                                     await ctx.reply(
-                                        `Create and, bundle succesffully, mint address is ${txRes.mint}`
+                                        `Created and bundled succesffully, mint address is ${txRes.mint}`
                                         , {
                                             reply_markup: handle_pump_bundle_message_result.reply_markup,
                                             parse_mode: "HTML",
@@ -313,6 +313,63 @@ const main = async () => {
                             }
                         }
                     }
+                    break
+
+                case 'handle_sell_all':
+                    try {
+                        res = message.pumpSellAllMintMessage()
+                        ctx.session.action = 'pumpsell-all-mint'
+                        await ctx.reply(
+                            res.content,
+                            {
+                                reply_markup: res.reply_markup,
+                                parse_mode: "HTML"
+                            }
+                        )
+                    } catch (err) { }
+                    break
+
+                case 'handle_sell_all_tokens':
+                    try {
+                        res = await message.pumpSellConfirmMessage()
+                        const sellLoadingMessage = await ctx.reply(
+                            res.content,
+                            {
+                                reply_markup: res.reply_markup,
+                                parse_mode: "HTML"
+                            }
+                        )
+
+                        const txRes = await batchPumpSellToken(ctx.session)
+
+                        if (txRes) {
+                            await ctx.api.deleteMessage(ctx.chat?.id!, sellLoadingMessage.message_id);
+                            if (txRes.success) {
+                                await ctx.reply(
+                                    `Batch sold successfully`
+                                    , {
+                                        reply_markup: new InlineKeyboard().text("🚫 Close", "handle_delete_msg"),
+                                        parse_mode: "HTML",
+                                        link_preview_options: { is_disabled: true },
+
+                                    }
+                                )
+
+                            } else {
+                                await ctx.reply(
+                                    `Transaction failed, Please try again`,
+                                    {
+                                        reply_markup: new InlineKeyboard().text("🚫 Cancel", "handle_delete_msg"),
+                                        parse_mode: "HTML",
+                                        link_preview_options: { is_disabled: true },
+                                    }
+                                )
+
+                            }
+                        }
+
+                        break
+                    } catch (err) { }
                     break
 
                 case 'handle_delete_msg':
@@ -404,44 +461,11 @@ const main = async () => {
                         )
                         break
 
-                    // case 'pumpsell-amount':
-                    //     res = await message.pumpSellInputAmountMessage(str, ctx.session)
+                    case 'pumpsell-all-mint':
+                        res = await message.pumpSellAllMintResultMessage(str, ctx.session)
 
-                    //     if (res.result) {
-                    //         ctx.session.pumpsell.amount = Number(str)
-                    //         ctx.session.action = undefined
-                    //     }
+                        ctx.session.batchSellMint = str
 
-                    //     await ctx.reply(
-                    //         res.content,
-                    //         {
-                    //             reply_markup: res.reply_markup,
-                    //             parse_mode: "HTML"
-                    //         }
-                    //     )
-                    //     break
-
-                    case 'pumpfun-sub-amount':
-                        if (Number(str) > 0) {
-                            if (ctx.session.tempWallet) {
-                                ctx.session.pumpfun.wallets.push({
-                                    privKey: ctx.session.tempWallet,
-                                    amount: Number(str),
-                                    default: true
-                                })
-                                ctx.session.tempWallet = undefined
-                                ctx.session.action = undefined
-                                res = message.pumpfunMessage(ctx.session)
-                            }
-                        } else {
-                            await ctx.reply(
-                                'Please input correct amount',
-                                {
-                                    reply_markup: new InlineKeyboard().text("🚫 Cancel", "handle_delete_msg"),
-                                    parse_mode: "HTML"
-                                }
-                            )
-                        }
                         await ctx.reply(
                             res.content,
                             {
@@ -450,6 +474,36 @@ const main = async () => {
                             }
                         )
                         break
+
+                    // case 'pumpfun-sub-amount':
+                    //     if (Number(str) > 0) {
+                    //         if (ctx.session.tempWallet) {
+                    //             ctx.session.pumpfun.wallets.push({
+                    //                 privKey: ctx.session.tempWallet,
+                    //                 amount: Number(str),
+                    //                 default: true
+                    //             })
+                    //             ctx.session.tempWallet = undefined
+                    //             ctx.session.action = undefined
+                    //             res = message.pumpfunMessage(ctx.session)
+                    //         }
+                    //     } else {
+                    //         await ctx.reply(
+                    //             'Please input correct amount',
+                    //             {
+                    //                 reply_markup: new InlineKeyboard().text("🚫 Cancel", "handle_delete_msg"),
+                    //                 parse_mode: "HTML"
+                    //             }
+                    //         )
+                    //     }
+                    //     await ctx.reply(
+                    //         res.content,
+                    //         {
+                    //             reply_markup: res.reply_markup,
+                    //             parse_mode: "HTML"
+                    //         }
+                    //     )
+                    //     break
 
                     default:
                         // ctx.session.action = undefined
