@@ -2,7 +2,7 @@ import fs from 'fs'
 import { Bot, Context, InlineKeyboard, session, SessionFlavor } from "grammy"
 import { BOT_TOKEN, COMMAND_LIST } from "./src/config";
 import { message } from "./src/utils";
-import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData, testSession } from "./src/config/contant";
+import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData } from "./src/config/contant";
 import { batchPumpSellToken, buyPumpSellToken, createAndBundleTx, handleNewWallet, importNewWallet } from "./src/utils/utils";
 import { connectMongoDB } from './src/config/db';
 
@@ -12,7 +12,7 @@ const main = async () => {
 
     await bot.api.setMyCommands(COMMAND_LIST);
 
-    bot.use(session({ initial: testSession }));
+    bot.use(session({ initial: initialSession }));
 
     bot.use(async (ctx, next) => {
         const username = ctx.from?.username

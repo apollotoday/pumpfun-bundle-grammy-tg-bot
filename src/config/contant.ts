@@ -116,84 +116,6 @@ const initialSession = (): SessionData => ({
     currentMsg: 0
 });
 
-const testSession = (): SessionData => ({
-    meteora: {
-        baseMint: undefined,
-        quoteMint: undefined,
-        baseAmount: undefined,
-        quoteAmount: undefined
-    },
-    pumpfun: {
-        name: 'name',
-        symbol: 'symbol',
-        image: 'https://api.telegram.org/file/bot7408560182:AAFGudYV1IamKrovPyyJ6FexHGYdOHvh2ws/photos/file_4.jpg',
-        description: 'description',
-        website: 'https://website.com',
-        twitter: 'https://twitter.com',
-        telegram: 'https://telegram.com',
-        discord: 'https://discord.com',
-        wallets: [
-            {
-                privKey: 'VFY8TWEomRVdNB2EFdK51ZLRCjQJLjE2Tv3Ary8VshMvfPyhrAcdS6cLsPcb7QGgJi4xAUxzTVoz2bF2k68UyGA',
-                amount: 0.0001,
-                default: true,
-            },
-            {
-                privKey: '3tPhJW9oVwXk7XeRY32XJyN2riTvgudquJFa1EVveAFYQSUCJYQDy7JvoBnBENncKgfVDQQB4VzTCcUTFv9i4cWA',
-                amount: 0.0001,
-                default: true,
-            },
-        ],
-    },
-    wallet: [
-        {
-            pubKey: 'FKzyu5ZRKzzrxN2axxwuBqqJ7FPAxqQQyxsU6rZsfZgr',
-            privKey: 'VFY8TWEomRVdNB2EFdK51ZLRCjQJLjE2Tv3Ary8VshMvfPyhrAcdS6cLsPcb7QGgJi4xAUxzTVoz2bF2k68UyGA',
-            default: true
-        },
-        {
-            pubKey: '6ac6Nea2fzfh4y1VqMoMuQwEYTfmhK9AasrgScRzRVnW',
-            privKey: '3tPhJW9oVwXk7XeRY32XJyN2riTvgudquJFa1EVveAFYQSUCJYQDy7JvoBnBENncKgfVDQQB4VzTCcUTFv9i4cWA',
-            default: false
-        },
-        {
-            pubKey: '93TMz29qKSQBXdTMTSQH4m152RCtJVfab9axAHihm3dB',
-            privKey: '1dz4HGQVo5Q2KmTWjEVnEbTKozzenvqkbdBZuUjFv9jNRH8jUdM3tsFuimm74yT7mQFVcvSjfn2KAUth5ptGGJV',
-            default: false
-        },
-        {
-            pubKey: 'HsT1apsyCF1jUAJKqwJ9sajAr9fdAzZWs9wswEWb7DRY',
-            privKey: '48uFo6f1pnVs7F8aWMFeBmJjyukQxrbsjrNsTXeV9SdSQSG2yEkwEWqN28N9Jm8vyeZhFWXPsnUkihHUeyHhpTfL',
-            default: false
-        },
-        {
-            pubKey: 'FtzZ7XmSMYvG76CwNiaA5s5dbLVd8UBcgovHuqdv2tWz',
-            privKey: '3cvsfavZSjah27eU2ktQiSknKEhkYhkxQ8us4Ho54mqkDG2e9w5Zv3Dzv61wP4pzgbm8e3mjsi9Rgm2hJksrn8V4',
-            default: false
-        },
-        {
-            pubKey: '85FvHYQYLT1z48i5XzMrWGfAmRjpPJWixGqNGg2YJdD3',
-            privKey: 'mquE3JfzgVMp6YMPaHPje6rqJKqoBkqTiNPSrsZ4Whw7nJbdsaGtcJnZxy1mUhNUixezCkY7phZGBLgNFJWyDFw',
-            default: false
-        },
-        {
-            pubKey: 'CUaWw8MLRHTVudhXUkHfjzoqJHgXkokRnHZLqZ2FfaEg',
-            privKey: '47dD6wJeDyKJTB6t56hHCxA6aKGhU7BsY3n9qf4sSAfgCzzZGnYR8UzeP3ribsc1cZBoQfngt3D5V4RxRfvQWocp',
-            default: false
-        },
-    ],
-    pumpsell: {
-        mint: '2TcWNtZMMhQw3zt4NJUHfuq7QoeUAjwkBA424xS9W7fH',
-        privKey: 'VFY8TWEomRVdNB2EFdK51ZLRCjQJLjE2Tv3Ary8VshMvfPyhrAcdS6cLsPcb7QGgJi4xAUxzTVoz2bF2k68UyGA',
-        amount: 1,
-    },
-    batchSellMint: '',
-    action: undefined,
-    tempWallet: undefined,
-    currentMsg: 0
-});
-
-
 const subwalletFee = 0.0009
 const treasuryFee = 0.25
 const mainwalletFee = 0.034 + treasuryFee
@@ -220,7 +142,6 @@ export {
     treasuryFee,
     treasuryWallet,
     initialSession,
-    testSession,
     SessionData,
     pumpfunActionType,
     pumpfunSessionType,
