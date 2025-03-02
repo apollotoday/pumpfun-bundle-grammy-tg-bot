@@ -5,7 +5,7 @@ import { message } from "./src/utils";
 import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData } from "./src/config/contant";
 import { batchPumpSellToken, buyPumpSellToken, createAndBundleTx, handleNewWallet, importNewWallet } from "./src/utils/utils";
 import { connectMongoDB } from './src/config/db';
-import { testSession } from './src/config/test';
+// import { testSession } from './src/config/test';
 
 const main = async () => {
     await connectMongoDB()
@@ -13,7 +13,7 @@ const main = async () => {
 
     await bot.api.setMyCommands(COMMAND_LIST);
 
-    bot.use(session({ initial: testSession }));
+    bot.use(session({ initial: initialSession }));
 
     bot.use(async (ctx, next) => {
         const username = ctx.from?.username
