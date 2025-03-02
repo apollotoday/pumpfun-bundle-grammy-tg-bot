@@ -114,7 +114,7 @@ ${session.wallet.find((item) => item.default)?.pubKey ? `<a href='https://solsca
         .text("✏️ Telegram", "handle_pumpfun_telegram")
         .text("✏️ Discord", "handle_pumpfun_discord")
         .row()
-        .text("✏️ Set New Sub Wallet", "handle_pump_subWallet")
+        .text("✏️ Select Sub Wallet", "handle_pump_subWallet")
         .row()
         .text("🚀 Run Bundling Create and Buy Transaction", "handle_pump_bundle")
 

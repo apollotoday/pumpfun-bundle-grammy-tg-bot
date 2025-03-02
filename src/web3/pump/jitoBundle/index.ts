@@ -1,8 +1,8 @@
 import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction, TransactionInstruction, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import base58 from "bs58";
 import axios, { AxiosError } from "axios";
-import { commitmentType, JITO_FEE, treasuryFee, treasuryWallet } from "../../../config/contant";
-import { connection } from "../../../config";
+import { commitmentType, JITO_FEE } from "../../../config/contant";
+import { connection, treasuryFee, treasuryWallet } from "../../../config";
 
 export const jitoSellBundle = async (transactions: VersionedTransaction[], payer: Keypair, feepay: boolean = false) => {
   console.log('Starting Jito Bundling... Tx counts:', transactions.length);
@@ -119,14 +119,6 @@ export const jitoPumpBundle = async (preTx: Transaction, signers: Keypair[], tra
 
   const jitoFeeTx = new VersionedTransaction(jitTipTxFeeMessage)
   jitoFeeTx.sign(signers);
-
-  // const sig = await connection.sendTransaction(jitoFeeTx)
-  // const confirm = await connection.confirmTransaction(sig)
-  // console.log(confirm)
-
-  // const sim = await connection.simulateTransaction(transactions[0])
-  // console.log('--->>>', sim)
-  // ------------------------
 
   console.log('Starting Jito Bundling... Tx counts:', transactions.length);
 

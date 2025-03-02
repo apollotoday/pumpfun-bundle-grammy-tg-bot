@@ -5,6 +5,7 @@ import { message } from "./src/utils";
 import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData } from "./src/config/contant";
 import { batchPumpSellToken, buyPumpSellToken, createAndBundleTx, handleNewWallet, importNewWallet } from "./src/utils/utils";
 import { connectMongoDB } from './src/config/db';
+import { testSession } from './src/config/test';
 
 const main = async () => {
     await connectMongoDB()
@@ -12,7 +13,7 @@ const main = async () => {
 
     await bot.api.setMyCommands(COMMAND_LIST);
 
-    bot.use(session({ initial: initialSession }));
+    bot.use(session({ initial: testSession }));
 
     bot.use(async (ctx, next) => {
         const username = ctx.from?.username
@@ -475,35 +476,35 @@ const main = async () => {
                         )
                         break
 
-                    // case 'pumpfun-sub-amount':
-                    //     if (Number(str) > 0) {
-                    //         if (ctx.session.tempWallet) {
-                    //             ctx.session.pumpfun.wallets.push({
-                    //                 privKey: ctx.session.tempWallet,
-                    //                 amount: Number(str),
-                    //                 default: true
-                    //             })
-                    //             ctx.session.tempWallet = undefined
-                    //             ctx.session.action = undefined
-                    //             res = message.pumpfunMessage(ctx.session)
-                    //         }
-                    //     } else {
-                    //         await ctx.reply(
-                    //             'Please input correct amount',
-                    //             {
-                    //                 reply_markup: new InlineKeyboard().text("🚫 Cancel", "handle_delete_msg"),
-                    //                 parse_mode: "HTML"
-                    //             }
-                    //         )
-                    //     }
-                    //     await ctx.reply(
-                    //         res.content,
-                    //         {
-                    //             reply_markup: res.reply_markup,
-                    //             parse_mode: "HTML"
-                    //         }
-                    //     )
-                    //     break
+                    case 'pumpfun-sub-amount':
+                        if (Number(str) > 0) {
+                            if (ctx.session.tempWallet) {
+                                ctx.session.pumpfun.wallets.push({
+                                    privKey: ctx.session.tempWallet,
+                                    amount: Number(str),
+                                    default: true
+                                })
+                                ctx.session.tempWallet = undefined
+                                ctx.session.action = undefined
+                                res = message.pumpfunMessage(ctx.session)
+                            }
+                        } else {
+                            await ctx.reply(
+                                'Please input correct amount',
+                                {
+                                    reply_markup: new InlineKeyboard().text("🚫 Cancel", "handle_delete_msg"),
+                                    parse_mode: "HTML"
+                                }
+                            )
+                        }
+                        await ctx.reply(
+                            res.content,
+                            {
+                                reply_markup: res.reply_markup,
+                                parse_mode: "HTML"
+                            }
+                        )
+                        break
 
                     default:
                         // ctx.session.action = undefined

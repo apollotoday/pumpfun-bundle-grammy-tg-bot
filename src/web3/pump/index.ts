@@ -139,8 +139,7 @@ export class PumpFunSDK {
         priorityFees?: PriorityFee,
         commitment: Commitment = commitmentType.Confirmed,
         finality: Finality = commitmentType.Finalized
-    ) {
-        // ): Promise<TransactionResult> {
+    ): Promise<TransactionResult> {
 
         const mintAtaList = sellers.map(item => getAssociatedTokenAddressSync(mint, item.publicKey))
         // create lookup table
@@ -185,15 +184,22 @@ export class PumpFunSDK {
             if (bundleResult.confirmed) {
                 return {
                     success: true,
-                    mint: mint.toBase58(),
-                    bundleId: bundleResult.bundleId,
-                    tipTx: bundleResult.jitoTxsignature
+                    results: {
+                        mint: mint.toBase58(),
+                        bundleId: bundleResult.bundleId,
+                        tipTx: bundleResult.jitoTxsignature
+                    }
                 }
             } else {
                 return {
                     success: false,
                     error: 'bundling error'
                 }
+            }
+        } else {
+            return {
+                success: false,
+                error: 'sell tx error'
             }
         }
     }
@@ -224,6 +230,7 @@ export class PumpFunSDK {
             true
         );
         const lutAddressList = [...buyers.map(item => item.publicKey), ...mintAtaList, mint.publicKey, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, systemProgram, eventAuthority, pumpFunProgram, rentProgram, this.GLOBAL_MINT, globalAccount.feeRecipient, associatedBondingCurve]
+        console.log('lutAddressList', lutAddressList)
         const lutResult = await createLookupTable(this.connection, payer, lutAddressList)
         if (lutResult.Err) {
             console.error('error occurs while creating lut')

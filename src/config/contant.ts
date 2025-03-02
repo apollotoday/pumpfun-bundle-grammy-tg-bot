@@ -1,4 +1,5 @@
 import { PublicKey } from "@solana/web3.js"
+import { treasuryFee } from "."
 
 const COMMAND_LIST = [
     { command: "start", description: "Start the clickcreate bot" },
@@ -117,9 +118,7 @@ const initialSession = (): SessionData => ({
 });
 
 const subwalletFee = 0.0009
-const treasuryFee = 0.25
 const mainwalletFee = 0.034 + treasuryFee
-const treasuryWallet = new PublicKey('8qKprDywhMDoinLUVUqJRmzAge3CCZq8TxFh4RrPu3xC')
 
 // web3
 const systemProgram = new PublicKey('11111111111111111111111111111111')
@@ -139,8 +138,6 @@ const JITO_FEE = 1_000_000
 export {
     JITO_FEE,
     COMMAND_LIST,
-    treasuryFee,
-    treasuryWallet,
     initialSession,
     SessionData,
     pumpfunActionType,
