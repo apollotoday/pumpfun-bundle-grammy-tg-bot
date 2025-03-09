@@ -6,7 +6,6 @@ const COMMAND_LIST = [
     { command: "wallet", description: "Manage your wallet" },
     { command: "sell", description: "Sell pumpfun token from your wallet" },
     { command: "pumpfun", description: "Bundle create token and buy tokens" },
-    { command: "meteora", description: "Create meteora pool" },
 ]
 
 interface SessionData {

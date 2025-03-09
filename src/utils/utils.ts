@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js"
 import { getAssociatedTokenAddressSync } from "@solana/spl-token"
 import bs58 from 'bs58'
@@ -23,7 +25,6 @@ const validateBundle = async (session: SessionData): Promise<{ success: false, e
     if (!session.pumpfun.symbol) return { success: false, error: 'You never set token symbol' }
     if (!session.pumpfun.description) return { success: false, error: 'You never set token description' }
     if (!session.pumpfun.image) return { success: false, error: 'You never set token image' }
-    // if (session.pumpfun.subWallet.length == 0) return { success: false, error: 'You never set no sub wallets' }
     if (session.pumpfun.wallets.length > 20) return { success: false, error: 'You have too many sub wallets' }
     if (duplicateCheck(session.pumpfun.wallets)) return { success: false, error: 'You have duplicatd sub wallet' }
 

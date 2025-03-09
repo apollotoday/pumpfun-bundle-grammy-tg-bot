@@ -230,7 +230,7 @@ export class PumpFunSDK {
             true
         );
         const lutAddressList = [...buyers.map(item => item.publicKey), ...mintAtaList, mint.publicKey, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, systemProgram, eventAuthority, pumpFunProgram, rentProgram, this.GLOBAL_MINT, globalAccount.feeRecipient, associatedBondingCurve]
-        console.log('lutAddressList', lutAddressList)
+
         const lutResult = await createLookupTable(this.connection, payer, lutAddressList)
         if (lutResult.Err) {
             console.error('error occurs while creating lut')
@@ -629,7 +629,7 @@ export class PumpFunSDK {
         );
 
         return this.program.methods
-            .create(name, symbol, uri)
+            .create(name, symbol, uri, creator)
             .accounts({
                 mint: mint.publicKey,
                 associatedBondingCurve: associatedBondingCurve,
