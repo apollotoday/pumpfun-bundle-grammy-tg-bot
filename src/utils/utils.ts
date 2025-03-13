@@ -39,8 +39,10 @@ const validateBundle = async (session: SessionData): Promise<{ success: false, e
         if (wallet.publicKey.toBase58() == mainKeypair.publicKey.toBase58()) additionalMainFee = walletInfo.amount
         if (balance <= walletInfo.amount + subwalletFee) return { success: false, error: `Wallet #${idx + 1} has insufficient balance` }
     }
-
-    if (mainBalance <= mainwalletFee + 0.01025 * Math.ceil((session.pumpfun.wallets.length - 1) / 5) + additionalMainFee) return { success: false, error: `Main wallet has insufficient balance` }
+    console.log('session.pumpfun.wallets.length', session.pumpfun.wallets.length)
+    const mainWalletFeeLimit = mainwalletFee + 0.01025 * Math.ceil((session.pumpfun.wallets.length - 1) / 5) + additionalMainFee
+    console.log('mainBalance, mainWalletFeeLimit', mainBalance, mainWalletFeeLimit, mainwalletFee)
+    if (mainBalance <= mainWalletFeeLimit) return { success: false, error: `Main wallet has insufficient balance` }
 
     return { success: true }
 }
@@ -87,7 +89,28 @@ const createAndBundleTx = async (session: SessionData) => {
     }
 
     // Vanity
-    const mint = Keypair.generate()
+    let mint = undefined
+    const folderPath = path.join('/root', 'vanity');
+    const files = fs.readdirSync(folderPath).filter(file => file.endsWith('pump.json'));
+    while (!mint) {
+        if (files.length === 0) {
+            mint = Keypair.generate()
+        } else {
+            const firstFile = files[0]; // Pick the first file
+            const filePath = path.join(folderPath, firstFile);
+            const fileData = fs.readFileSync(filePath, 'utf-8');
+            const jsonData = JSON.parse(fileData);
+            const data = Keypair.fromSecretKey(new Uint8Array(jsonData));
+            const info = await connection.getAccountInfo(data.publicKey)
+            if (info?.data) {
+                console.log(`Already created, ${firstFile}`)
+            } else {
+                mint = data
+                console.log(`Possible to use, ${firstFile}`)
+            }
+            fs.unlinkSync(filePath);
+        }
+    }
     const mintResult = await pumpFunSDK.createAndBatchBuy(creator, buyers, buyAmountSol, createTokenMetadata, mint)
     return mintResult
 }

@@ -5,7 +5,6 @@ import { message } from "./src/utils";
 import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData } from "./src/config/contant";
 import { batchPumpSellToken, buyPumpSellToken, createAndBundleTx, handleNewWallet, importNewWallet } from "./src/utils/utils";
 import { connectMongoDB } from './src/config/db';
-// import { testSession } from './src/config/test';
 
 const main = async () => {
     await connectMongoDB()
@@ -288,6 +287,17 @@ const main = async () => {
                         if (handle_pump_bundle_message_result.success) {
                             const txRes = await createAndBundleTx(ctx.session)
                             if (txRes) {
+                                ctx.session.pumpfun = {
+                                    name: undefined,
+                                    symbol: undefined,
+                                    image: undefined,
+                                    description: undefined,
+                                    website: undefined,
+                                    twitter: undefined,
+                                    telegram: undefined,
+                                    discord: undefined,
+                                    wallets: []
+                                }
                                 await ctx.api.deleteMessage(ctx.chat?.id!, loadingMessage.message_id);
                                 if (txRes.success) {
                                     await ctx.reply(

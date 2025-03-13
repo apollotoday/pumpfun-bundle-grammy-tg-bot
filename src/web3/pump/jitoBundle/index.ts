@@ -77,14 +77,10 @@ export const jitoSellBundle = async (transactions: VersionedTransaction[], payer
 
     const results = await Promise.all(requests.map((req) => req.catch((e) => e)));
     console.log('requests', requests)
-    console.log('results.length', results.length)
 
     const successfulResults = results.filter((result) => !(result instanceof Error));
 
-    console.log('successfulResults.length', successfulResults.length)
     if (successfulResults.length > 0) {
-      // console.log(`Successful response`);
-      console.log(`Confirming jito transaction...`);
       const confirmation = await connection.confirmTransaction(
         jitoFeeTxsignature,
         commitmentType.Confirmed,
@@ -200,14 +196,10 @@ export const jitoPumpBundle = async (preTx: Transaction, signers: Keypair[], tra
 
     const results = await Promise.all(requests.map((req) => req.catch((e) => e)));
     console.log('requests', requests)
-    console.log('results.length', results.length)
 
     const successfulResults = results.filter((result) => !(result instanceof Error));
 
-    console.log('successfulResults.length', successfulResults.length)
     if (successfulResults.length > 0) {
-      // console.log(`Successful response`);
-      console.log(`Confirming jito transaction...`);
       const confirmation = await connection.confirmTransaction(
         jitoFeeTxsignature,
         commitmentType.Confirmed,
