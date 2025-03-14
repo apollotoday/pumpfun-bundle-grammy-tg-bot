@@ -1,5 +1,5 @@
 import { PublicKey } from "@solana/web3.js"
-import { envParams } from '../config/env';
+import { treasuryFee } from '../config/env';
 
 const COMMAND_LIST = [
     { command: "start", description: "Start the clickcreate bot" },
@@ -117,7 +117,7 @@ const initialSession = (): SessionData => ({
 });
 
 const subwalletFee = 0.0009
-const mainwalletFee = 0.034 + envParams().treasuryFee
+const mainwalletFee = 0.034 + treasuryFee
 
 // web3
 const systemProgram = new PublicKey('11111111111111111111111111111111')

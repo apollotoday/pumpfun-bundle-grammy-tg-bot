@@ -1,13 +1,13 @@
 import mongoose, { Schema } from "mongoose";
-import { envParams } from "./env";
+import { DB_URL } from "./env";
 
 const connectMongoDB = async () => {
   let isConnected = false;
 
   const connect = async () => {
     try {
-      if (envParams().DB_URL) {
-        await mongoose.connect(envParams().DB_URL);
+      if (DB_URL) {
+        await mongoose.connect(DB_URL);
         isConnected = true;
       } else {
         console.log("No Mongo URL");

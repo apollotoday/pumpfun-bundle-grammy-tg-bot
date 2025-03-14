@@ -2,7 +2,7 @@ import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transa
 import base58 from "bs58";
 import axios, { AxiosError } from "axios";
 import { commitmentType, JITO_FEE } from "../../../config/contant";
-import { connection, envParams } from "../../../config/env";
+import { connection, treasuryWallet, treasuryFee } from "../../../config/env";
 
 export const jitoSellBundle = async (transactions: VersionedTransaction[], payer: Keypair, feepay: boolean = false) => {
   console.log('Starting Jito Bundling... Tx counts:', transactions.length);
@@ -141,8 +141,8 @@ export const jitoPumpBundle = async (preTx: Transaction, signers: Keypair[], tra
       }),
       SystemProgram.transfer({
         fromPubkey: payer.publicKey,
-        toPubkey: envParams().treasuryWallet,
-        lamports: envParams().treasuryFee * LAMPORTS_PER_SOL,
+        toPubkey: treasuryWallet,
+        lamports: treasuryFee * LAMPORTS_PER_SOL,
       }),
 
     ]
