@@ -18,8 +18,8 @@ import {
   AddressLookupTableProgram
 } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
-import { connection } from "../../../config";
 import { commitmentType } from "../../../config/contant";
+import { connection } from "../../../config/env";
 
 export const calcNonDecimalValue = (value: number, decimals: number): number => {
   return Math.trunc(value * (Math.pow(10, decimals)))

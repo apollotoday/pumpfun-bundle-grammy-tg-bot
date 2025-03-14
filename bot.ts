@@ -1,14 +1,15 @@
 import fs from 'fs'
 import { Bot, Context, InlineKeyboard, session, SessionFlavor } from "grammy"
-import { BOT_TOKEN, COMMAND_LIST } from "./src/config";
 import { message } from "./src/utils";
 import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData } from "./src/config/contant";
 import { batchPumpSellToken, buyPumpSellToken, createAndBundleTx, handleNewWallet, importNewWallet } from "./src/utils/utils";
 import { connectMongoDB } from './src/config/db';
+import { COMMAND_LIST, envParams } from './src/config/env';
+// import { testSession } from './src/config/test';
 
 const main = async () => {
     await connectMongoDB()
-    const bot = new Bot<Context & SessionFlavor<SessionData>>(BOT_TOKEN)
+    const bot = new Bot<Context & SessionFlavor<SessionData>>(envParams().BOT_TOKEN)
 
     await bot.api.setMyCommands(COMMAND_LIST);
 

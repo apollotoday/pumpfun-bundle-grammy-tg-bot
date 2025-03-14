@@ -1,10 +1,10 @@
 import { InlineKeyboard } from "grammy";
-import { connection } from "../config";
+import { getAssociatedTokenAddressSync, MintLayout } from "@solana/spl-token";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { validateBundle } from "./utils";
 import { pumpfunMintAuthority, SessionData } from "../config/contant";
 import bs58 from 'bs58'
-import { getAssociatedTokenAddressSync, MintLayout } from "@solana/spl-token";
+import { connection } from "../config/env";
 
 const startMessage = (username: string | undefined) => {
     const content = `Hello ${username ?? ''}, Welcome to Click Create Bot`
