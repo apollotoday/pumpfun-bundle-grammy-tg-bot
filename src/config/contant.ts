@@ -116,8 +116,9 @@ const initialSession = (): SessionData => ({
     currentMsg: 0
 });
 
-const subwalletFee = 0.0009
-const mainwalletFee = 0.034 + treasuryFee
+const subwalletFee = 0.001
+const mainwalletFee = 0.038 + treasuryFee
+const lutFee = 0.012
 
 // web3
 const systemProgram = new PublicKey('11111111111111111111111111111111')
@@ -148,5 +149,6 @@ export {
     pumpFunProgram,
     rentProgram,
     pumpfunMintAuthority,
+    lutFee,
     commitmentType
 }

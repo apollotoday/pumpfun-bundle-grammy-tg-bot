@@ -3,7 +3,7 @@ import path from 'path';
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js"
 import { getAssociatedTokenAddressSync } from "@solana/spl-token"
 import bs58 from 'bs58'
-import { mainwalletFee, SessionData, subwalletFee } from "../config/contant"
+import { lutFee, mainwalletFee, SessionData, subwalletFee } from "../config/contant"
 import { CreateTokenMetadata } from "../web3/pump/utils/types"
 import axios from "axios"
 import { dataModel } from "../config/db"
@@ -25,7 +25,7 @@ const validateBundle = async (session: SessionData): Promise<{ success: false, e
     if (!session.pumpfun.symbol) return { success: false, error: 'You never set token symbol' }
     if (!session.pumpfun.description) return { success: false, error: 'You never set token description' }
     if (!session.pumpfun.image) return { success: false, error: 'You never set token image' }
-    if (session.pumpfun.wallets.length > 20) return { success: false, error: 'You have too many sub wallets' }
+    if (session.pumpfun.wallets.length > 15) return { success: false, error: 'You have too many sub wallets' }
     if (duplicateCheck(session.pumpfun.wallets)) return { success: false, error: 'You have duplicatd sub wallet' }
 
     const mainPrivkey = session.wallet.find((item) => item.default === true)
@@ -38,7 +38,7 @@ const validateBundle = async (session: SessionData): Promise<{ success: false, e
         if (wallet.publicKey.toBase58() == mainKeypair.publicKey.toBase58()) additionalMainFee = walletInfo.amount
         if (balance <= walletInfo.amount + subwalletFee) return { success: false, error: `Wallet #${idx + 1} has insufficient balance` }
     }
-    const mainWalletFeeLimit = mainwalletFee + 0.01025 * Math.ceil((session.pumpfun.wallets.length - 1) / 5) + additionalMainFee
+    const mainWalletFeeLimit = mainwalletFee + lutFee * Math.ceil((session.pumpfun.wallets.length - 1) / 5) + additionalMainFee
     if (mainBalance <= mainWalletFeeLimit) return { success: false, error: `Main wallet has insufficient balance` }
 
     return { success: true }
@@ -94,19 +94,21 @@ const createAndBundleTx = async (session: SessionData) => {
         while (!mint) {
             if (files.length == 0) break
             else {
-                const firstFile = files[0]; // Pick the first file
-                const filePath = path.join(folderPath, firstFile);
+                const randomIndex = Math.floor(Math.random() * files.length); // Generate random index
+                const selectedFile = files[randomIndex]; // Pick a random file
+                const filePath = path.join(folderPath, selectedFile);
                 const fileData = fs.readFileSync(filePath, 'utf-8');
                 const jsonData = JSON.parse(fileData);
                 const data = Keypair.fromSecretKey(new Uint8Array(jsonData));
                 const info = await connection.getAccountInfo(data.publicKey)
                 if (info?.data) {
-                    console.log(`Already created, ${firstFile}`)
+                    console.log(`Already created, ${selectedFile}`)
                 } else {
                     mint = data
-                    console.log(`Possible to use, ${firstFile}`)
+                    console.log(`Possible to use, ${selectedFile}`)
                 }
                 fs.unlinkSync(filePath);
+                files.splice(randomIndex, 1); // Remove the used file from the array
             }
         }
     } catch (error) { }

@@ -4,8 +4,7 @@ import { message } from "./src/utils";
 import { initialSession, pumpfunActionType, pumpfunSessionType, SessionData } from "./src/config/contant";
 import { batchPumpSellToken, buyPumpSellToken, createAndBundleTx, handleNewWallet, importNewWallet } from "./src/utils/utils";
 import { connectMongoDB } from './src/config/db';
-import { BOT_TOKEN, COMMAND_LIST} from './src/config/env';
-// import { testSession } from './src/config/test';
+import { BOT_TOKEN, COMMAND_LIST } from './src/config/env';
 
 const main = async () => {
     await connectMongoDB()
@@ -21,11 +20,11 @@ const main = async () => {
         const message = ctx.update.message?.text
         const callback_query = ctx.update.callback_query?.data
         const action = ctx.session.action
-        let log = `${username} (${id}): `
+        let log = `=> ${username} (${id}): `
         if (message) log += `message => ${message} (${action})\n`
         if (callback_query) log += `callback_query => ${callback_query} (${action})\n`
 
-        fs.appendFileSync('log.txt', log)
+        fs.appendFileSync('log.txt', new Date().toISOString() + log + JSON.stringify(ctx.session, null, 4) + '\n')
         await next()
     });
 
@@ -302,7 +301,7 @@ const main = async () => {
                                 await ctx.api.deleteMessage(ctx.chat?.id!, loadingMessage.message_id);
                                 if (txRes.success) {
                                     await ctx.reply(
-                                        `Created and bundled succesffully, mint address is ${txRes.mint}`
+                                        `Created and bundled succesffully, mint address is <code>${txRes.mint}</code>`
                                         , {
                                             reply_markup: handle_pump_bundle_message_result.reply_markup,
                                             parse_mode: "HTML",
