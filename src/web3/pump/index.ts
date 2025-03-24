@@ -781,7 +781,7 @@ export class PumpFunSDK {
 
     transaction.add(
       await this.program.methods
-        .buy(new BN(amount.toString()), new BN(solAmount.toString()))
+        .buy(new BN(amount.toString()).div(new BN(10)).mul(new BN(5)), new BN(solAmount.toString()))
         .accounts({
           feeRecipient: feeRecipient,
           mint: mint,

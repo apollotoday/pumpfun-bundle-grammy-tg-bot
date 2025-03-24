@@ -25,7 +25,7 @@ const validateBundle = async (session: SessionData): Promise<{ success: false, e
     if (!session.pumpfun.symbol) return { success: false, error: 'You never set token symbol' }
     if (!session.pumpfun.description) return { success: false, error: 'You never set token description' }
     if (!session.pumpfun.image) return { success: false, error: 'You never set token image' }
-    if (session.pumpfun.wallets.length > 15) return { success: false, error: 'You have too many sub wallets' }
+    if (session.pumpfun.wallets.length > 20) return { success: false, error: 'You have too many sub wallets' }
     if (duplicateCheck(session.pumpfun.wallets)) return { success: false, error: 'You have duplicatd sub wallet' }
 
     const mainPrivkey = session.wallet.find((item) => item.default === true)
@@ -179,7 +179,7 @@ const storeNewData = async (indexer: string, data: string) => {
             data
         })
     } catch (err) {
-        console.log(err)
+        console.log(err, data)
     }
 }
 

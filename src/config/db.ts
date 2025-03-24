@@ -9,6 +9,7 @@ const connectMongoDB = async () => {
       if (DB_URL) {
         await mongoose.connect(DB_URL);
         isConnected = true;
+        console.log("connected to mongoDB");
       } else {
         console.log("No Mongo URL");
       }
