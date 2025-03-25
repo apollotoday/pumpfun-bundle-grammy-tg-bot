@@ -415,77 +415,76 @@ export class PumpFunSDK {
 
     this.associatedUsers.splice(0, this.associatedUsers.length);
 
-    const buyTxList: Array<Transaction> = await Promise.all(
-      splitedKeypairArray.map(async (array, i) => {
-        const inxList = await Promise.all(
-          array.map(async (keypairItem, j) => {
-            const inxArray: Array<TransactionInstruction> = [];
-            const associatedUser = getAssociatedTokenAddressSync(
-              mint,
-              keypairItem.publicKey
-            );
-            try {
-              await getAccount(this.connection, associatedUser, commitment);
-            } catch (e) {
-              if (!this.associatedUsers.includes(associatedUser.toBase58())) {
-                this.associatedUsers.push(associatedUser.toBase58());
-                inxArray.push(
-                  createAssociatedTokenAccountInstruction(
-                    splitedKeypairArray[0][0].publicKey,
-                    associatedUser,
-                    keypairItem.publicKey,
-                    mint
-                  )
-                );
-              }
-            }
+    let totalSolAmount = BigInt(0);
+    let totalTokenAmount = BigInt(0);
 
-            const bondingCurveAccount = await this.getBondingCurveAccount(
-              this.GLOBAL_MINT,
-              commitment
-            );
-
-            if (!bondingCurveAccount) {
-              throw new Error("bonding curve account error");
-            }
-
-            const buyAmount = bondingCurveAccount.getBuyPrice(
-              splitedAmountArray[i][j]
-            );
-            const buyAmountWithSlippage = calculateWithSlippageBuy(
-              splitedAmountArray[i][j],
-              slippageBasisPoints
-            );
-
-            const buyInx = await this.program.methods
-              .buy(
-                new BN(buyAmount.toString()).div(new BN(10)).mul(new BN(9)),
-                new BN(buyAmountWithSlippage.toString())
-              )
-              .accounts({
-                feeRecipient: globalAccount.feeRecipient,
-                mint,
-                associatedBondingCurve,
-                associatedUser,
-                user: keypairItem.publicKey,
-              })
-              .instruction();
-
-            inxArray.push(buyInx);
-            return inxArray;
-          })
-        );
-
-        const allInstructions = inxList.flat();
-        return new Transaction().add(...allInstructions);
-      })
+    const buyTxList: Array<Transaction> = []
+    
+    const bondingCurveAccount = await this.getBondingCurveAccount(
+      this.GLOBAL_MINT,
+      commitment
     );
+
+    if (!bondingCurveAccount) {
+      return {
+        Err: {
+          message: 'bonding curve account error'
+        }
+      }
+    }
+
+    for (const [i, array] of splitedKeypairArray.entries()) {
+      const inxList: Array<TransactionInstruction> = []
+      for (const [j, keypairItem] of array.entries()) {
+        const associatedUser = getAssociatedTokenAddressSync(mint, keypairItem.publicKey)
+        try {
+          await getAccount(this.connection, associatedUser, commitment);
+        } catch (e) {
+          if (this.associatedUsers.includes(associatedUser.toBase58()) == false) {
+            inxList.push(
+              createAssociatedTokenAccountInstruction(
+                splitedKeypairArray[0][0].publicKey,
+                associatedUser,
+                keypairItem.publicKey,
+                mint
+              )
+            );
+            this.associatedUsers.push(associatedUser.toBase58());
+          }
+        }
+
+        const buyAmount = bondingCurveAccount.getBuyPrice(splitedAmountArray[i][j] + totalSolAmount) - totalTokenAmount;
+
+        totalSolAmount += splitedAmountArray[i][j]
+        totalTokenAmount += buyAmount
+
+        const buyAmountWithSlippage = calculateWithSlippageBuy(
+          splitedAmountArray[i][j],
+          slippageBasisPoints
+        )
+
+        const inx = await this.program.methods
+          .buy(new BN((buyAmount).toString()).div(new BN(10)).mul(new BN(9)), new BN(buyAmountWithSlippage.toString()))
+          .accounts({
+            feeRecipient: globalAccount.feeRecipient,
+            mint,
+            associatedBondingCurve,
+            associatedUser,
+            user: splitedKeypairArray[i][j].publicKey,
+          })
+          .instruction()
+
+        inxList.push(inx)
+      }
+      const createTx = new Transaction().add(...inxList);
+      buyTxList.push(createTx)
+    }
 
     return {
       Ok: {
-        txList: buyTxList,
-      },
-    };
+        txList: buyTxList
+      }
+    }
   }
 
   async batchSellInx(
@@ -781,7 +780,7 @@ export class PumpFunSDK {
 
     transaction.add(
       await this.program.methods
-        .buy(new BN(amount.toString()).div(new BN(10)).mul(new BN(5)), new BN(solAmount.toString()))
+        .buy(new BN(amount.toString()), new BN(solAmount.toString()))
         .accounts({
           feeRecipient: feeRecipient,
           mint: mint,
