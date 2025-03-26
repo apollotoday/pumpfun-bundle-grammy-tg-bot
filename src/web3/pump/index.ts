@@ -419,7 +419,7 @@ export class PumpFunSDK {
     let totalTokenAmount = BigInt(0);
 
     const buyTxList: Array<Transaction> = []
-    
+
     const bondingCurveAccount = await this.getBondingCurveAccount(
       this.GLOBAL_MINT,
       commitment
@@ -503,6 +503,8 @@ export class PumpFunSDK {
       true
     );
 
+    let totalTokenAmount = BigInt(0);
+    let totalSolAmount = BigInt(0);
     const sellTxList: Array<Transaction> = [];
     for (const [i, array] of splitedKeypairArray.entries()) {
       const inxList: Array<TransactionInstruction> = [];
@@ -524,10 +526,14 @@ export class PumpFunSDK {
           keypairItem.publicKey
         );
 
+
         const minSolOutput = bondingCurveAccount.getSellPrice(
-          splitedAmountArray[i][j],
+          splitedAmountArray[i][j] + totalTokenAmount,
           globalAccount.feeBasisPoints
-        );
+        ) - totalSolAmount
+
+        totalSolAmount += minSolOutput
+        totalTokenAmount += splitedAmountArray[i][j]
 
         const sellAmountWithSlippage = calculateWithSlippageSell(
           minSolOutput,
@@ -536,7 +542,7 @@ export class PumpFunSDK {
 
         const inx = await this.program.methods
           .sell(
-            new BN(splitedAmountArray[i][j].toString()),
+            new BN(splitedAmountArray[i][j].toString()).div(new BN(10)).mul(new BN(9)),
             new BN(sellAmountWithSlippage.toString())
           )
           .accounts({
